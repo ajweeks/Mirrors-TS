@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<!-- Copyright AJ Weeks 2015 -->
+<html lang="en">
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="content-type">
+    <meta name="keywords" content="mirrors, js, html, css, mirrors-js, game">
+    <meta name="description" content="A 2D tile-based laser-filled game created by AJ Weeks">
+    <meta name="author" content="AJ Weeks">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style type="text/css">
+        @font-face {
+            font-family: YanoneKaffeesatzThin;
+            src: url('res/fonts/YanoneKaffeesatz-Thin.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: YanoneKaffeesatzLight;
+            src: url('res/fonts/YanoneKaffeesatz-Light.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: YanoneKaffeesatz;
+            src: url('res/fonts/YanoneKaffeesatz-Regular.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: YanoneKaffeesatzBold;
+            src: url('res/fonts/YanoneKaffeesatz-Bold.ttf') format('truetype');
+        }
+    </style>
+    <style type="text/css">
+        html {
+            /* PREVENT TEXT HIGHLIGHTING SITE-WIDE */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+
+            font-family: 'YanoneKaffeesatzLight', sans-serif;
+        }
+        body {
+            background: #191919;
+            margin: 0;
+            min-width: 600px;
+            min-height: 600px; /* Pretty much useless, nothing is really based on the height in css... */
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        #game {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        input {
+            -webkit-touch-callout: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        h2 {
+            font-weight: normal;
+            font-size: 36px;
+            color: aliceblue;
+            text-align: center;
+            cursor: default;
+        }
+
+        #mainmenubtns {
+            margin: 10% auto;
+        }
+
+        .button {
+            color: white;
+            cursor: pointer;
+            margin: 6px auto;
+            background-color: #3b154b;
+            text-align: center;
+            font-size: 28px;
+            width: 130px;
+            height: 45px;
+            line-height: 45px;
+        }
+
+        #saveButton, #clearButton {
+          color: white;
+          text-align: center;
+          font-size: 20px;
+        }
+
+        [class~=lvlselect] {
+            background-color: #3e3e3e;
+            cursor: default;
+        }
+
+        #backarrow, #forwardarrow {
+            color: aliceblue;
+            background-color: rgba(25, 25, 25, 0.8);
+            cursor: default;
+            position: fixed;
+            top: 0;
+            width: 100px;
+            height: 100%;
+            z-index: 5001;
+            display: inline-block;
+            text-align: center;
+        }
+
+        #backarrow {
+            left: 0;
+        }
+
+        #forwardarrow {
+            right: 0;
+        }
+
+        #forwardarrow p, #backarrow p {
+            margin-top: 400%;
+            font-size: 48px;
+        }
+
+        .page {
+            position: relative;
+            display: inline-block;
+            margin: 0 60px;
+        }
+
+        /* represents a column of buttons in the lvl selection area */
+        .col {
+            position: relative;
+            display: inline-block;
+            margin: 0 60px;
+        }
+
+        #gameboard {
+            background: transparent;
+            cursor: pointer;
+            position: absolute;
+        }
+        #tiles {
+            z-index: 2;
+        }
+        #gamecanvas, #lvledittilescanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -3;
+        }
+        #lvledittilesarea {
+            cursor: pointer;
+            position: absolute;
+        }
+        .selectionTile {
+            position: relative;
+            height: 64px;
+            width: 64px;
+        }
+
+        .row { height: 64px; }
+        .tile {
+            position: absolute;
+            height: 64px;
+            width: 64px;
+        }
+
+        /*  TO MAKE SOMETHING "STICK" TO THE BOTTOM OF THE WINDOW, SET: { position: fixed, left: 0px, bottom: 0px; }  */
+
+        #infoarea {
+            color: aliceblue;
+            margin: 15px;
+            position: fixed;
+            top: 0;
+            right: 0;
+            font-size: 22px;
+            z-index: 5005;;
+        }
+        #infoarea div {
+            margin: 10px 5px;
+            cursor: default;
+        }
+        #infoarea ul {
+            margin: 0;
+            padding: 0 25px;
+        }
+        #infoarea li {
+            margin: 0;
+            padding: 2px 5px;
+            font-family: inherit;
+            list-style-type: square;
+        }
+        #infoarea [onmousedown] {
+            cursor: pointer;
+        }
+        #infoarea [onmousedown]:hover {
+            text-shadow: 0 0 3px #BFFFBF;
+        }
+
+        #aboutinfo {
+            position: absolute;
+            left: 50%;
+            margin-left: -20%;
+            width: 40%;
+            color: white;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        a {
+            color: #6d0101;
+        }
+
+        a:hover {
+            color: #900202;
+        }
+
+        #versionNumber {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            opacity: 0.5;
+            margin: 8px;
+            font-size: 20px;
+            z-index: 100000;
+            color: white;
+        }
+        #versionNumber:hover {
+            color:darkgray;
+            cursor: pointer;
+        }
+    </style>
+    <script src="external/stats.min.js"></script>
+    <!--        <script src="js/external/bugsnag.js" data-apikey="0378601a233896374ff5cc83b1d302ef"></script>  -->
+    <script src="main.js"></script>
+</head>
+<body>
+<div id="game">
+    <h2>Mirrors</h2>
+
+    <div id="mainmenubtns">
+        <div class="button" id="playButton" style="width: 180px; height: 80px; line-height: 80px;" onclick="Game.sm.enterState('levelselect');">Play</div>
+        <div class="button" id="aboutButton" style="width: 180px; height: 80px; line-height: 80px;" onclick="Game.sm.enterState('about');">About</div>
+    </div>
+
+    <div id="aboutstate" style="display: none">
+        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: 240px;">Back</div>
+        <div id="aboutinfo">
+            <p>Mirrors was developed entirely by AJ Weeks in early 2015 using pure JavaScript. The first iteration of the project was written in Java in late 2014.
+                You can read more about it and download a copy at <a href="https://liqwidice.wordpress.com/portfolio/mirrors" target="_blank">liqwidice.wordpress.com/portfolio/mirrors</a></p>
+            <p>The unobfuscated source code can be found at: <a href="https://github.com/ajweeks/mirrors-js" target="_blank">github.com/ajweeks/mirrors-js</a></p>
+            <p>You can read more about the game here: <a href="https://liqwidice.wordpress.com/portfolio/mirrors-js" target="_blank">liqwidice.wordpress.com/portfolio/mirrors-js</a></p>
+            <p>My personal blog can be found at: <a href="https://ajweeks.wordpress.com" target="_blank">ajweeks.wordpress.com</a></p>
+            <p>The best way to contact me is probably on Twitter <a href="https://twitter.com/liqwidice" target="_blank">@liqwidice</a>.  Feel free to shoot any comments or criticisms my way over there.</p>
+            <p>For serious business inquiries, you can email me at <a href="mailto:ajweeks@shaw.ca">ajweeks@shaw.ca</a></p>
+        </div>
+    </div>
+
+    <div id="levelselectstate" style="display: none;"></div>
+
+    <div id="gameboard" oncontextmenu="return false;" onmousedown="boardClick(event, true)" style="display: none">
+        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: -430px; margin-top: -40px;">Back</div>
+        <div id="tiles"></div>
+        <canvas id="gamecanvas"></canvas>
+    </div>
+
+    <div id="lvledittilesarea" style="display: none">
+        <div id="lvledittiles"></div>
+        <canvas id="lvledittilescanvas"></canvas>
+    </div>
+
+    <div id="versionNumber"></div>
+
+    <div id="infoarea" style="display: none;">
+        <div id="shortcuts"><!-- having a static width isn't ideal, but otherwise the width will change when the longest <li> element is being hovered over and being bolded -->
+            <b>Shortcuts:</b>
+            <ul>
+                <li id="debugInfo" onmousedown="toggleDebug();">Debug - 9</li>
+                <li id="lvlEditInfo" onmousedown="toggleLevelEditMode();">Lvl Edit Mode - 0</li>
+            </ul>
+        </div>
+        <div id="tile_types">
+            <b>Tile types:</b>
+            <ul>
+                <li>0 - BLANK</li>
+                <li>1 - MIRROR</li>
+                <li>2 - POINTER</li>
+                <li>3 - RECEPTOR</li>
+            </ul>
+        </div>
+        <div id="color_types">
+            <b>Colour IDs:</b>
+            <ul>
+                <li>0 - RED</li>
+                <li>1 - GREEN</li>
+                <li>2 - BLUE</li>
+                <li>3 - WHITE</li>
+            </ul>
+        </div>
+    </div>
+</div>
+</body>
+</html>
