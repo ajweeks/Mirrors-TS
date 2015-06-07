@@ -7,18 +7,218 @@
 declare
     function Stats(): any;
 
-function get(what: string) {
+function get(what: string): HTMLElement {
     return document.getElementById(what);
 }
 
 enum ID { BLANK = 0, MIRROR = 1, POINTER = 2, RECEPTOR = 3 }
 enum COLOUR { RED, GREEN, BLUE, WHITE }
 enum STATE { MAIN_MENU, GAME, ABOUT, LEVEL_SELECT }
-enum IMAGE { BLANK, MIRROR, POINTER, RECEPTOR, LASER }
+enum IMAGE { BLANK = 0, MIRROR = 1, POINTER = 2, RECEPTOR = 3, LASER = 4 }
 enum DIRECTION { NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3, NW = 0, NE = 1, SE = 2, SW = 3 }
 
+class Game {
+    static version: number = 0.041;
+    static releaseStages = { DEVELOPMENT: "development", PRODUCTION: "production" };
+    static releaseStage: string = Game.releaseStages.DEVELOPMENT;   // RELEASE make false
+    static images = [];
+    static preferences = { 'warn': Game.debug };
+    static selectedTileID: number = ID.BLANK;
+    static saveLocation: string = "Mirrors";
+    static debug: boolean;
+    static popupUp: boolean = false;
+
+    /*
+     *   Levels are stored as follows:
+     *   In the simplest form, just a 1D array of numbers   e.g. [0, 1, 2, 0, 2], with each number cooresponding to a tile type
+     *   However, if a tile has more information than just type (everything except blank types) then a sub-array will be
+     *   used to store that info     e.g. [0, [1, 1], 2, 0, [2, 1, 2], 1]    if this method is used, not every complex
+     *   element needs to be in an array, if the default direction, colour, etc. is wanted (FYI it's NORTH & RED)
+     *   If an element does use the sub-array method, it MUST have all fields filled out, even if they are the same as the defaults
+     *   Mirror: [ID, DIR]
+     *   Pointer: [ID, DIR, ON, COL]
+     *   Receptor: [ID, DIR, RECEPTORS STRING (NESW, 'R', 'G', 'B', 'W', 'X' <- blank)]
+     *
+     *   eg.
+     *   Mirror: [1, 1]
+     *   Pointer: [2, 3, 1, 2]
+     *   Receptor: [3, 1, "RBXW"]
+     */
+
+    /* The default game levels (these NEVER get mutated) */
+    static defaultLevels = [
+        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 0], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [3, 3, 'GXXX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 1, 'RXXX'], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [2, 3, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+
+        [10, 8, [[2, 1, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1, 1], 0, [1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 0, 1, 0], 0, 0, 0, 0, 0, 0, [3, 2, 'XXRB'], 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1]]],
+
+        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+
+        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    ];
+
+    /* Stores which levels the player has completed */
+    static completedLevels: boolean[];
+
+    static keysdown: boolean[] = [];
+    static sm: StateManager;
+
+    static offset: number[][] = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // tile offsets (N, E, S, W)
+
+    static ticks: number = 0;
+    static fps: number = 60;
+
+    static lvlselectButtonSpeed: number = 6; // the speed the level selection buttons are going
+    static lvlselectButtonDirection: number = 0;
+
+    static stats: any;
+
+    static KEYBOARD = {
+        BACKSPACE: 8, TAB: 9, RETURN: 13, ESC: 27, SPACE: 32, PAGEUP: 33, PAGEDOWN: 34, END: 35, HOME: 36, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, INSERT: 45, DELETE: 46, ZERO: 48, ONE: 49, TWO: 50, THREE: 51, FOUR: 52, FIVE: 53, SIX: 54, SEVEN: 55, EIGHT: 56, NINE: 57, A: 65, B: 66, C: 67, D: 68, E: 69, F: 70, G: 71, H: 72, I: 73, J: 74, K: 75, L: 76, M: 77, N: 78, O: 79, P: 80, Q: 81, R: 82, S: 83, T: 84, U: 85, V: 86, W: 87, X: 88, Y: 89, Z: 90, TILDE: 192, SHIFT: 999
+    };
+
+    static init() {
+        document.title = "Mirrors V" + Game.version;
+        get('versionNumber').innerHTML = '<a href="https://github.com/ajweeks/mirrors-ts" target="_blank" style="color: inherit; text-decoration: none;">' + "V." + Game.version + '</a>';
+
+        Game.images[IMAGE.BLANK] = new Image();
+        Game.images[IMAGE.BLANK].src = "res/blank.png";
+        Game.images[IMAGE.BLANK].alt = "blank";
+
+        Game.images[IMAGE.MIRROR] = new Image();
+        Game.images[IMAGE.MIRROR].src = "res/mirror.png";
+        Game.images[IMAGE.MIRROR].alt = "mirror";
+
+        Game.images[IMAGE.POINTER] = new Image();
+        Game.images[IMAGE.POINTER].src = "res/pointer.png";
+        Game.images[IMAGE.POINTER].alt = "pointer";
+
+        Game.images[IMAGE.RECEPTOR] = [];
+
+        Game.images[IMAGE.RECEPTOR][COLOUR.RED] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.RED].src = "res/receptor_red.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.RED].alt = "receptor";
+
+        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].src = "res/receptor_green.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].alt = "receptor";
+
+        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].src = "res/receptor_blue.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].alt = "receptor";
+
+        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].src = "res/receptor_white.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].alt = "receptor";
+
+        Game.images[IMAGE.LASER] = [];
+
+        Game.images[IMAGE.LASER][COLOUR.RED] = new Image();
+        Game.images[IMAGE.LASER][COLOUR.RED].src = "res/laser_red.png";
+        Game.images[IMAGE.LASER][COLOUR.RED].alt = "red laser";
+
+        Game.images[IMAGE.LASER][COLOUR.GREEN] = new Image();
+        Game.images[IMAGE.LASER][COLOUR.GREEN].src = "res/laser_green.png";
+        Game.images[IMAGE.LASER][COLOUR.GREEN].alt = "green laser";
+
+        Game.images[IMAGE.LASER][COLOUR.BLUE] = new Image();
+        Game.images[IMAGE.LASER][COLOUR.BLUE].src = "res/laser_blue.png";
+        Game.images[IMAGE.LASER][COLOUR.BLUE].alt = "blue laser";
+
+        // Mr. Doob's stats widget:
+        Game.stats = Stats();
+        Game.stats.setMode(0); // 0: fps, 1: ms
+        Game.stats.domElement.style.position = 'absolute';
+        Game.stats.domElement.style.left = '0px';
+        Game.stats.domElement.style.top = '0px';
+        document.body.appendChild(Game.stats.domElement);
+
+        Game.sm = new StateManager();
+
+        Game.completedLevels = new Array<boolean>(Game.defaultLevels.length);
+
+        Game.setDefaultPrefs();
+    }
+
+    static renderImage(context: CanvasRenderingContext2D, x: number, y: number, image, dir: number, size: number): void {
+        context.save();
+        context.translate(x, y);
+        context.rotate(dir * 90 * (Math.PI / 180));
+
+        try {
+            context.drawImage(image, -size / 2, -size / 2);
+        } catch (e) {
+            throw new Error(e.message);
+        }
+
+        context.restore();
+    }
+
+    static setDefaultPrefs(): void {
+        setDebug(Game.releaseStage === Game.releaseStages.DEVELOPMENT);
+        setLevelEditMode(Game.debug);
+        Game.preferences.warn = !Game.debug;
+    }
+
+    // TODO LATER add a tutorial overlay? controls at least?
+
+    static setPopup(str: string): void {
+        get('darken').style.display = "block";
+        get('popup').style.display = "block";
+        get('popup').innerHTML = str;
+        Game.popupUp = true;
+    }
+
+    static clearPopup(): void {
+        get('darken').style.display = "none";
+        get('popup').style.display = "none";
+        get('popup').innerHTML = "";
+        Game.popupUp = false;
+    }
+
+    static update(): void {
+        Game.ticks += 1;
+
+        if (Game.keysdown[Game.KEYBOARD.ESC]) {
+            this.sm.enterPreviousState();
+        } else if (Game.keysdown[Game.KEYBOARD.ZERO]) {
+            toggleLevelEditMode();
+        } else if (Game.keysdown[Game.KEYBOARD.NINE]) {
+            toggleDebug();
+        }
+
+        Game.sm.update();
+
+        for (var i = 0; i < Game.keysdown.length; i++) {
+            Game.keysdown[i] = false;
+        }
+    }
+
+    static render(): void {
+        Game.sm.render();
+    }
+
+    // Main loop
+    static loop(): void {
+        Game.stats.begin();
+
+        Game.update();
+        if (document.hasFocus() || Game.ticks % 5 === 0) { // render if the window has focus, or at least every 5 ticks
+            Game.render();
+        }
+
+        Game.stats.end();
+
+        window.setTimeout(Game.loop, 1000 / Game.fps);
+    }
+}
+
 class BasicState {
-    constructor(public id: number, protected sm: StateManager) {
+    id: number;
+    protected sm: StateManager;
+
+    constructor(id: number, sm: StateManager) {
+        this.id = id;
+        this.sm = sm;
     }
 
     update(): void {
@@ -27,7 +227,7 @@ class BasicState {
     render(): void {
     }
 
-    click(event: Event, down: boolean): void {
+    click(event: MouseEvent, down: boolean): void {
     }
 
     /* gets called when another state is placed on top of the stack and therefore covering this one */
@@ -96,8 +296,9 @@ class LevelSelectState extends BasicState {
             str += '<div class="col">';
             for (y = 0; y < this.height; y++) { // for every item in the column
                 n = (x * this.height) + y;
-                str += '<div class="button lvlselect" id="' + n + 'lvlselectButton" ' +
-                (Game.defaultLevels[n] === undefined ? '' : 'onmousedown="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + n + ');"') +
+                var enabled = Game.defaultLevels[n] !== undefined;
+                str += '<div class="button lvlselect' + (enabled ? ' enabled' : '') + '" id="' + n + 'lvlselectButton" ' +
+                (enabled ? 'onmousedown="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + n + ');"' : '') +
                 '>' + decimalToHex(n) + '</div>';
             }
             str += '</div>';
@@ -109,6 +310,8 @@ class LevelSelectState extends BasicState {
         get('levelselectstate').style.marginLeft = '150px';
         get('levelselectstate').style.marginTop = '80px';
         get('levelselectstate').innerHTML = str;
+
+        // TODO add reset all button
 
         LevelSelectState.updateButtonBgs();
     }
@@ -132,11 +335,10 @@ class LevelSelectState extends BasicState {
     static updateButtonBgs() {
         var i;
         for (i = 0; i < Game.defaultLevels.length; i++) {
-            get(i + 'lvlselectButton').style.cursor = "pointer";
             if (Game.completedLevels[i] === true) {
-                get(i + 'lvlselectButton').style.backgroundColor = "#007900";
+                get(i + 'lvlselectButton').style.backgroundColor = Colour.GREEN;
             } else {
-                get(i + 'lvlselectButton').style.backgroundColor = "#501967";
+                get(i + 'lvlselectButton').style.backgroundColor = null;
             }
         }
     }
@@ -157,60 +359,61 @@ class LevelSelectState extends BasicState {
 
 class GameState extends BasicState {
     static levelEditMode: boolean;
+    static levelEditTiles: Tile[];
     levelNum: number;
     level: Level;
 
     constructor(sm: StateManager, levelNum: number) {
         super(STATE.GAME, sm);
-        GameState.levelEditMode = Game.debug;
         this.levelNum = levelNum;
 
-        this.setLevel();
+        GameState.levelEditTiles = [
+            Level.getNewDefaultTile(ID.BLANK, 0, 0),
+            Level.getNewDefaultTile(ID.MIRROR, 0, 0),
+            Level.getNewDefaultTile(ID.POINTER, 0, 0),
+            Level.getNewDefaultTile(ID.RECEPTOR, 0, 0)];
+
+        this.level = new Level(this.levelNum);
 
         get('gameboard').style.display = "block";
 
         // centering code:
         get('gameboard').style.left = "50%";
-        get('gameboard').style.marginLeft = -(this.level.w * Game.tileSize) / 2 + "px";
+        get('gameboard').style.marginLeft = -(this.level.w * Tile.size) / 2 + "px";
 
-        get('gameboard').style.width = this.level.w * Game.tileSize + "px";
-        get('gameboard').style.height = this.level.h * Game.tileSize + "px";
+        get('gameboard').style.width = this.level.w * Tile.size + "px";
+        get('gameboard').style.height = this.level.h * Tile.size + "px";
 
-        (<HTMLCanvasElement>get('gamecanvas')).width = this.level.w * Game.tileSize;
-        (<HTMLCanvasElement>get('gamecanvas')).height = this.level.h * Game.tileSize;
+        (<HTMLCanvasElement>get('gamecanvas')).width = this.level.w * Tile.size;
+        (<HTMLCanvasElement>get('gamecanvas')).height = this.level.h * Tile.size;
 
 
         get('lvledittiles').innerHTML = '<div>' +
-        '<div class="selectionTile" id="0tile" onmousedown="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" style="background-image: url(res/blank.png)"></div>' +
-        '<div class="selectionTile" id="1tile" onmousedown="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" style="background-image: url(res/mirror.png)"></div>' +
-        '<div class="selectionTile" id="2tile" onmousedown="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" style="background-image: url(res/pointer.png)"></div>' +
-        '<div class="selectionTile" id="3tile" onmousedown="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" style="background-image: url(res/receptor_white.png)"></div>' +
-        '<div class="selectionTile" id="saveButton" onmousedown="selectionTileClick(event, true, 888)">save</div>' +
-        '<div class="selectionTile" id="clearButton" onmousedown="selectionTileClick(event, true, 887)">clear</div>' +
+        '<div class="selectionTile" id="0tile" onmousedown="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" ' +
+        'onmouseover="get(\'0tilep\').style.visibility=\'visible\'" onmouseout="get(\'0tilep\').style.visibility=\'hidden\'"><p id="0tilep" style="visibility: hidden">blank</p></div>' +
+        '<div class="selectionTile" id="1tile" onmousedown="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" ' +
+        'onmouseover="get(\'1tilep\').style.visibility=\'visible\'" onmouseout="get(\'1tilep\').style.visibility=\'hidden\'"><p id="1tilep" style="visibility: hidden">mirror</p></div>' +
+        '<div class="selectionTile" id="2tile" onmousedown="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" ' +
+        'onmouseover="get(\'2tilep\').style.visibility=\'visible\'" onmouseout="get(\'2tilep\').style.visibility=\'hidden\'"><p id="2tilep" style="visibility: hidden">pointer</p></div>' +
+        '<div class="selectionTile" id="3tile" onmousedown="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" ' +
+        'onmouseover="get(\'3tilep\').style.visibility=\'visible\'" onmouseout="get(\'3tilep\').style.visibility=\'hidden\'"><p id="3tilep" style="visibility: hidden">receptor</p></div>' +
+        '<div class="selectionTile" id="printButton" onmousedown="selectionTileClick(event, true, 888)"><p>print</p></div>' +
+        '<div class="selectionTile" id="clearButton" onmousedown="selectionTileClick(event, true, 887)"><p>clear</p></div>' +
+        '<div class="selectionTile" id="helpButton" onmousedown="selectionTileClick(event, true, 886)"><p>help</p></div>' +
         '</div>';
 
-        (<HTMLCanvasElement> get('lvledittilescanvas')).width = Game.tileSize;
-        (<HTMLCanvasElement> get('lvledittilescanvas')).height = 6 * Game.tileSize;
-
+        (<HTMLCanvasElement> get('lvledittilescanvas')).width = Tile.size;
+        (<HTMLCanvasElement> get('lvledittilescanvas')).height = 7 * Tile.size;
 
         if (GameState.levelEditMode) {
             get('lvledittilesarea').style.display = "block";
+        } else {
+            get('lvledittilesarea').style.display = "none";
         }
     }
-
-    setLevel(): void {
-        this.level = Level.loadLevelFromMemory(this.levelNum);
-
-        if (this.level === null) { // there was no level saved previously, use default
-            var lvl = Game.defaultLevels[this.levelNum] || Game.defaultLevels[0];
-            this.level = new Level((<number>lvl[0]), (<number>lvl[1]), this.levelNum, (<Array<any>>lvl[2]));
-        }
-    }
-
-    // LATER add string exporting to make default level creation easier
 
     update(): void {
-        this.level.update();
+        // this.level.update();
     }
 
     render(): void {
@@ -218,10 +421,15 @@ class GameState extends BasicState {
 
         if (GameState.levelEditMode) {
             var context: CanvasRenderingContext2D = (<HTMLCanvasElement> get('lvledittilescanvas')).getContext('2d');
-            for (var i = 0; i < 6; i++) {
-                if (Game.selectedTile === i) context.fillStyle = "#134304";
-                else context.fillStyle = "#121212";
-                context.fillRect(0, i * Game.tileSize, Game.tileSize, Game.tileSize);
+            for (var i = 0; i < 7; i++) {
+                if (Game.selectedTileID === i) context.fillStyle = Colour.GREEN;
+                else context.fillStyle = Colour.DARK_GRAY;
+                context.fillRect(0, i * Tile.size, Tile.size, Tile.size);
+                if (i < GameState.levelEditTiles.length) GameState.levelEditTiles[i].render(context, Tile.size / 2, i * Tile.size + Tile.size / 2);
+                // Game.renderImage(context, Tile.size / 2, i * Tile.size + Tile.size / 2, Game.images[i], DIRECTION.NORTH, Tile.size);
+                context.strokeStyle = Colour.LIGHT_GRAY;
+                context.lineWidth = 1;
+                context.strokeRect(0, i * Tile.size, Tile.size, Tile.size);
             }
         }
     }
@@ -232,13 +440,13 @@ class GameState extends BasicState {
     }
 
     destroy(): void {
-        get('tiles').innerHTML = "";
         get('gameboard').style.display = "none";
         get('lvledittilesarea').style.display = "none";
     }
 
     click(event: MouseEvent, down: boolean): void {
         this.level.click(event, down);
+        (<GameState> Game.sm.currentState()).level.saveToMemory(); // save the board every time the user updates the board LATER save on a timer instead? Or when leaving the page?
     }
 
     hover(event: MouseEvent, into: boolean): void {
@@ -246,20 +454,64 @@ class GameState extends BasicState {
     }
 }
 
-class Colour {
-    static nextColor(colour: number, useWhite: boolean) {
-        switch (colour) {
-            case COLOUR.RED:
-                return COLOUR.GREEN;
-            case COLOUR.GREEN:
-                return COLOUR.BLUE;
-            case COLOUR.BLUE:
-                if (useWhite) return COLOUR.WHITE;
-                return COLOUR.RED;
-            case COLOUR.WHITE:
-                return COLOUR.RED;
+class StateManager {
+    states: BasicState[];
+
+    constructor() {
+        this.states = [];
+        this.states.push(new MainMenuState(this));
+    }
+
+    update(): void {
+        if (this.states.length > 0) {
+            this.currentState().update();
         }
-        return COLOUR.RED;
+    }
+
+    render(): void {
+        if (this.states.length > 0) {
+            this.currentState().render();
+        }
+    }
+
+    enterState(state: string, levelNum?: number): void { // levelNum only used when entering a game state
+        this.currentState().hide();
+        if (state === "game") this.states.push(this.getState(state, levelNum || 0));
+        else this.states.push(this.getState(state));
+    }
+
+    getState(state: string, levelNum?: number): BasicState {
+        switch (state) {
+            case "mainmenu":
+                return new MainMenuState(this);
+                break;
+            case "about":
+                return new AboutState(this);
+                break;
+            case "levelselect":
+                return new LevelSelectState(this);
+                break;
+            case "game":
+                return new GameState(this, levelNum);
+                break;
+        }
+        return null;
+    }
+
+    enterPreviousState(): boolean {
+        if (this.states[this.states.length - 1].id === STATE.GAME) (<GameState>this.states[this.states.length - 1]).level.checkCompleted();
+        if (this.states.length > 1) { // if there is only one state, we can't go back any further
+            this.currentState().destroy();
+            this.states.pop();
+            this.currentState().restore();
+            return true;
+        }
+
+        return false;
+    }
+
+    currentState(): BasicState {
+        return this.states[this.states.length - 1];
     }
 }
 
@@ -272,8 +524,8 @@ class Laser {
 
     // @param dir: the direction the tile is facing
     render(context: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
-        if (this.entering !== null) Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], add(dir, this.entering), Game.tileSize);
-        if (this.exiting !== null) Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], add(dir, this.exiting), Game.tileSize);
+        if (this.entering !== null) Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], Direction.add(dir, this.entering), Tile.size);
+        if (this.exiting !== null) Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], Direction.add(dir, this.exiting), Tile.size);
     }
 }
 
@@ -297,7 +549,7 @@ class Receptor {
 
     render(context: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
         //            if (this.laser) this.laser.render(context, x, y, sub(dir, 2)); // don't render lasers on receptor tiles, for now at least
-        Game.renderImage(context, x, y, Game.images[ID.RECEPTOR][this.colour], dir, Game.tileSize);
+        Game.renderImage(context, x, y, Game.images[ID.RECEPTOR][this.colour], dir, Tile.size);
     }
 
     // returns whether or not the specified colour turns the specified receptor on
@@ -308,6 +560,7 @@ class Receptor {
 }
 
 class Tile {
+    static size: number = 64;
     x: number;
     y: number;
     id: number;
@@ -364,7 +617,7 @@ class Tile {
         for (i = 0; i < this.lasers.length; i++) {
             this.lasers[i].render(context, x, y, 0);
         }
-        Game.renderImage(context, x, y, Game.images[this.id], this.dir, Game.tileSize);
+        Game.renderImage(context, x, y, Game.images[this.id], this.dir, Tile.size);
     }
 
     //@param laser: a laser obj: { entering = the side of the tile it is entering (GLOBALLY), exiting = null }
@@ -387,7 +640,7 @@ class BlankTile extends Tile {
     }
 
     addLaser(laser: Laser): void {
-        laser.exiting = opposite(laser.entering);
+        laser.exiting = Direction.opposite(laser.entering);
         super.addLaser(laser);
     }
 }
@@ -444,19 +697,18 @@ class PointerTile extends Tile {
         }
     }
 
-    update(board: Level): void {
+    update(level: Level): void {
         if (this.on === false) return;
 
         this.addLaser(new Laser(null, this.dir, this.colour));
-        // ^ this line ^ should always be true if this tile is "on" LATER test that
 
-        var checkedTiles = new Array<number>(board.w * board.h), // 0=not checked, 1=checked once, 2=checked twice (done)
+        var checkedTiles = new Array<number>(level.w * level.h), // 0=not checked, 1=checked once, 2=checked twice (done)
             nextDir = this.dir, // direction towards next tile
-            nextTile = board.getTile(this.x, this.y),
+            nextTile = level.getTile(this.x, this.y),
             xx,
             yy;
 
-        for (var i = 0; i < board.w * board.h; i++) {
+        for (var i = 0; i < level.w * level.h; i++) {
             checkedTiles[i] = 0;
         }
 
@@ -464,11 +716,11 @@ class PointerTile extends Tile {
             xx = nextTile.x + Game.offset[nextDir][0];
             yy = nextTile.y + Game.offset[nextDir][1];
 
-            if (xx < 0 || xx >= board.w || yy < 0 || yy >= board.h) break; // The next direction is leading us into the wall
-            if (checkedTiles[xx + yy * board.w] >= 2) break; // we've already checked this tile twice (this line avoids infinite loops)
-            else checkedTiles[xx + yy * board.w]++;
+            if (xx < 0 || xx >= level.w || yy < 0 || yy >= level.h) break; // The next direction is leading us into the wall
+            if (checkedTiles[xx + yy * level.w] >= 2) break; // we've already checked this tile twice (this line avoids infinite loops)
+            else checkedTiles[xx + yy * level.w]++;
 
-            nextTile = board.getTile(xx, yy); // get the tile to be updated
+            nextTile = level.getTile(xx, yy); // get the tile to be updated
             if (nextTile === null) break; // we hit a wall
 
             if (nextTile.id === ID.POINTER) { // !!!! Add all other opaque/solid tiles here
@@ -476,7 +728,7 @@ class PointerTile extends Tile {
             }
 
             // Find the next direction *after* setting the new laser object
-            nextTile.addLaser(new Laser(opposite(nextDir), null, this.lasers[0].colour));
+            nextTile.addLaser(new Laser(Direction.opposite(nextDir), null, this.lasers[0].colour));
             if (nextTile.lasers.length > 0) {
                 nextDir = nextTile.lasers[nextTile.lasers.length - 1].exiting;
             } else break; // they didn't add the laser, end the chain
@@ -520,22 +772,22 @@ class ReceptorTile extends Tile {
             super.click(event, down);
         } else if (clickType(event) === "right") {
             if (GameState.levelEditMode) {
-                if (Game.selectedTile === this.id) {
+                if (Game.selectedTileID === this.id) {
                     // cycle through the different colours of receptors
-                    var xx = getRelativeCoordinates(event, get('gamecanvas')).x % Game.tileSize,
-                        yy = getRelativeCoordinates(event, get('gamecanvas')).y % Game.tileSize,
+                    var xx = getRelativeCoordinates(event, get('gamecanvas')).x % Tile.size,
+                        yy = getRelativeCoordinates(event, get('gamecanvas')).y % Tile.size,
                         index;
-                    if (xx + yy <= Game.tileSize) { // NW
+                    if (xx + yy <= Tile.size) { // NW
                         if (xx >= yy) { // NE
-                            index = sub(DIRECTION.NORTH, this.dir);
+                            index = Direction.sub(DIRECTION.NORTH, this.dir);
                         } else { // SW
-                            index = sub(DIRECTION.WEST, this.dir);
+                            index = Direction.sub(DIRECTION.WEST, this.dir);
                         }
                     } else { // SE
                         if (xx >= yy) { // NE
-                            index = sub(DIRECTION.EAST, this.dir);
+                            index = Direction.sub(DIRECTION.EAST, this.dir);
                         } else { // SW
-                            index = sub(DIRECTION.SOUTH, this.dir);
+                            index = Direction.sub(DIRECTION.SOUTH, this.dir);
                         }
                     }
                     if (this.receptors[index] === null) {
@@ -554,8 +806,8 @@ class ReceptorTile extends Tile {
             if (this.receptors[i] !== null) this.receptors[i].laser = null;
         }
         for (i = 0; i < this.lasers.length; i++) {
-            if (this.receptors[sub(this.lasers[i].entering, this.dir)] !== null) { // there's a laser pointing into a receptor
-                this.receptors[sub(this.lasers[i].entering, this.dir)].laser = this.lasers[i];
+            if (this.receptors[Direction.sub(this.lasers[i].entering, this.dir)] !== null) { // there's a laser pointing into a receptor
+                this.receptors[Direction.sub(this.lasers[i].entering, this.dir)].laser = this.lasers[i];
             }
         }
         for (i = 0; i < this.receptors.length; i++) {
@@ -563,17 +815,21 @@ class ReceptorTile extends Tile {
         }
     }
 
-    static allReceptorsOn(receptors: Receptor[]): boolean {
-        for (var r in receptors) {
-            if (receptors[r] && (<Receptor>receptors[r]).on == false) return false;
+    allReceptorsOn(): boolean {
+        for (var r in this.receptors) {
+            if (this.receptors[r] && (<Receptor>this.receptors[r]).on == false) return false;
         }
         return true;
     }
 
     render(context: CanvasRenderingContext2D, x: number, y: number): void {
-        if (ReceptorTile.allReceptorsOn(this.receptors)) {
-            context.fillStyle = "#1d4d12";
-            context.fillRect(x - Game.tileSize / 2, y - Game.tileSize / 2, Game.tileSize, Game.tileSize);
+        if (this.allReceptorsOn()) {
+            context.fillStyle = Colour.GREEN;
+            context.strokeStyle = Colour.GREEN;
+            context.lineJoin = "round";
+            context.lineWidth = 20;
+            context.strokeRect(x - Tile.size / 2 + 10, y - Tile.size / 2 + 10, Tile.size - 20, Tile.size - 20);
+            context.fillRect(x - Tile.size / 2 + 10, y - Tile.size / 2 + 10, Tile.size - 20, Tile.size - 20);
         }
         for (var i = 0; i < this.lasers.length; i++) {
             // check if any of our lasers go straight through us
@@ -591,13 +847,13 @@ class ReceptorTile extends Tile {
         var solid = false;
         for (var i = 0; i < this.receptors.length; i++) {
             if (this.receptors[i] !== null) {
-                if (sub(i, this.dir) === laser.entering || sub(i, this.dir) === opposite(laser.entering)) {
+                if (Direction.sub(i, this.dir) === laser.entering || Direction.sub(i, this.dir) === Direction.opposite(laser.entering)) {
                     solid = true; // there is a receptor in the way, just add the laser without an exiting dir
                 }
             }
         }
         // if we reach this point, we can do what a blank tile does
-        if (solid === false) laser.exiting = opposite(laser.entering);
+        if (solid === false) laser.exiting = Direction.opposite(laser.entering);
 
         super.addLaser(laser);
     }
@@ -619,91 +875,50 @@ class Level {
     levelNum: number;
 
     // tiles can be an array of tile objects, or an array of numbers to be converted into tiles
-    constructor(w: number, h: number, levelNum: number, tiles: Array<any>) {
-        this.w = w;
-        this.h = h;
+    constructor(levelNum: number, w?: number, h?: number, tiles?: Array<Tile>) {
         this.levelNum = levelNum;
 
-        if (typeof tiles[0] === "number" || Array.isArray(tiles[0])) {
-            this.tiles = Level.numberArrayToTileArray(w, h, tiles.slice());
-        } else { // assume this is an array of Tiles LATER check somehow
+        if (tiles) {
+            this.w = w;
+            this.h = h;
             this.tiles = tiles.slice();
-        }
-    }
-
-    static numberArrayToTileArray(w: number, h: number, nums: Array<number>): Array<Tile> {
-        var tiles = new Array<Tile>(nums.length);
-        for (var i = 0; i < w * h; i++) {
-
-            tiles[i] = Level.getNewDefaultTile(nums[i], i % w, Math.floor(i / w));
-
-            if (tiles[i] === null) { // its a more complex type (it contains a sub-array)
-                switch (nums[i][0]) {
-                    case ID.BLANK:
-                        console.error("Blank tiles shouldn't be saved using arrays (index: " + i + ")");
-                        tiles[i] = new BlankTile(i % w, Math.floor(i / w));
-                        break;
-                    case ID.MIRROR:
-                        tiles[i] = new MirrorTile(i % w, Math.floor(i / w), nums[i][1]);
-                        break;
-                    case ID.POINTER:
-                        tiles[i] = new PointerTile(i % w, Math.floor(i / w), nums[i][1], nums[i][2], nums[i][3]);
-                        break;
-                    case ID.RECEPTOR:
-                        tiles[i] = new ReceptorTile(i % w, Math.floor(i / w), nums[i][1], nums[i][2]);
-                        break;
-                    default:
-                        console.error("Invalid tile property: " + nums[i] + " at index " + i);
-                        break;
-                }
+            this.checkCompleted();
+        } else {
+            if (this.loadLevelFromMemory() === false) {
+                this.loadDefaultLevel();
             }
         }
-        return tiles;
+
+        this.update();
     }
 
-    static getNewDefaultTile(id: number, x: number, y: number): Tile {
-        switch (id) {
-            case ID.BLANK:
-                return new BlankTile(x, y);
-            case ID.MIRROR:
-                return new MirrorTile(x, y, DIRECTION.NORTH);
-            case ID.POINTER:
-                return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
-            case ID.RECEPTOR:
-                return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
-        }
-        return null;
-    }
+    loadDefaultLevel(): void {
+        var lvl = Game.defaultLevels[this.levelNum] || Game.defaultLevels[0];
+        this.w = (<number>lvl[0]);
+        this.h = (<number>lvl[1]);
+        this.tiles = Level.anyArrayToTileArray(this.w, this.h, (<Array<any>>lvl[2]));
 
-    //static decodeNumber(id:number, x:number, y:number):Tile {
-    //    var tile:Tile;
-    //    switch (id) {
-    //        case ID.BLANK:
-    //            tile = new BlankTile(x, y);
-    //            break;
-    //        case ID.MIRROR:
-    //            tile = new MirrorTile(x, y, DIRECTION.NORTH);
-    //            break;
-    //        case ID.POINTER:
-    //            tile = new PointerTile(x, y, false, COLOUR.RED);
-    //            break;
-    //        case ID.RECEPTOR:
-    //            tile = new ReceptorTile(x, y, DIRECTION.NORTH);
-    //            break;
-    //        default:
-    //            console.error("unknown type saved in local storage: " + id);
-    //            break;
-    //    }
-    //    return tile;
-    //}
+        this.update();
+        this.checkCompleted();
+    }
 
     clear(): void {
         for (var i = 0; i < this.w * this.h; i++) {
             this.tiles[i] = new BlankTile(i % this.w, Math.floor(i / this.w));
         }
+
+        this.update();
+        this.checkCompleted();
     }
 
-    update(): void {
+    getTile(x: number, y: number): Tile {
+        if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
+            return this.tiles[x + y * this.w];
+        }
+        return null;
+    }
+
+    private update(): void {
         // remove all lasers
         for (var i = 0; i < this.tiles.length; i++) {
             this.tiles[i].removeAllLasers();
@@ -718,41 +933,69 @@ class Level {
         for (i = 0; i < this.tiles.length; i++) {
             if (this.tiles[i].id !== ID.POINTER) this.tiles[i].update(this);
         }
-    }
 
-    getTile(x: number, y: number): Tile {
-        if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
-            return this.tiles[x + y * this.w];
-        }
-        return null;
+        // OPTIMIZATION: only render stuff when updates are made
     }
 
     // OPTIMIZATION: pass in context through entire rendering chain?
     render(): void {
         var context: CanvasRenderingContext2D = (<HTMLCanvasElement> get('gamecanvas')).getContext('2d');
-        context.fillStyle = '#0a0a0a';
-        context.fillRect(0, 0, this.w * Game.tileSize, this.h * Game.tileSize);
+        context.fillStyle = Colour.GRAY;
+        context.fillRect(0, 0, this.w * Tile.size, this.h * Tile.size);
 
-        context.strokeStyle = '#444444';
         for (var i = 0; i < this.w * this.h; i++) {
-            if (Game.debug === true) context.strokeRect((i % this.w) * Game.tileSize, Math.floor(i / this.w) * Game.tileSize, Game.tileSize, Game.tileSize);
-            this.tiles[i].render(context, (i % this.w) * Game.tileSize + Game.tileSize / 2, Math.floor(i / this.w) * Game.tileSize + Game.tileSize / 2);
+            if (Game.debug === true) {
+                context.strokeStyle = '#444';
+                context.lineWidth = 1;
+                context.strokeRect((i % this.w) * Tile.size, Math.floor(i / this.w) * Tile.size, Tile.size, Tile.size);
+            }
+            this.tiles[i].render(context, (i % this.w) * Tile.size + Tile.size / 2, Math.floor(i / this.w) * Tile.size + Tile.size / 2);
         }
     }
 
     click(event: MouseEvent, down: boolean): void {
-        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Game.tileSize);
-        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Game.tileSize);
+        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Tile.size);
+        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Tile.size);
         this.tiles[y * this.w + x].click(event, down);
         // check if the user is editing a level
-        if (GameState.levelEditMode && clickType(event) === "left") {
-            this.tiles[y * this.w + x] = Level.getNewDefaultTile(Game.selectedTile, x, y);
+        if (GameState.levelEditMode && event.ctrlKey === false) {
+            if (clickType(event) === "left") this.tiles[y * this.w + x] = Level.getNewDefaultTile(Game.selectedTileID, x, y);
+            else if (clickType(event) === "right") this.tiles[y * this.w + x] = Level.getNewDefaultTile(ID.BLANK, x, y);
+        }
+
+        this.update();
+
+        this.checkCompleted();
+
+        if (Game.completedLevels[this.levelNum]) {
+            var str = '<div id="popupContent">' +
+                '<h3>Level complete!</h3> <p>Good job!</p>' +
+                '<div class="popupButton button" id="returnButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); }">Return</div>' +
+                '<div class="popupButton button" id="nextButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); if (' + (this.levelNum + 1) +  ' < Game.defaultLevels.length) { Game.sm.enterState(\'game\', ' + (this.levelNum + 1) + '); } Game.clearPopup(); }">Next Level!</div>' +
+                '</div>';
+            Game.setPopup(str);
+        } else {
+            Game.clearPopup();
         }
     }
 
+    /* Checks if all of this level's receptors have been activated and sets Game.completedLevels[levelNum] = true if so */
+    checkCompleted(): void {
+        for (var i = 0; i < this.tiles.length; i++) {
+            if (this.tiles[i].id === ID.RECEPTOR) {
+                if ((<ReceptorTile>this.tiles[i]).allReceptorsOn() == false) {
+                    Game.completedLevels[this.levelNum] = false;
+                    return;
+                }
+            }
+        }
+
+        Game.completedLevels[this.levelNum] = true;
+    }
+
     hover(event: MouseEvent, into: boolean): void {
-        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Game.tileSize);
-        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Game.tileSize);
+        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Tile.size);
+        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Tile.size);
         this.tiles[y * this.w + x].hover(into);
     }
 
@@ -766,24 +1009,24 @@ class Level {
      */
 
     /* Attempts to load a level from the user's local storage
-     Returns a new Level object if there was data found for levelNum, otherwise null */
-    static loadLevelFromMemory(levelNum: number): Level {
-        var data, storage, tiles, i, w, h;
+     Returns a true if there was data found for levelNum, otherwise null */
+    loadLevelFromMemory(): boolean {
+        var data, storage, tiles: Tile[], i: number, w: number, h: number;
         if (typeof (Storage) === "undefined") {
             alert("Failed to load data. You must update your browser if you want to play this game.");
-            return null;
+            return false;
         }
 
-        storage = window.localStorage.getItem(Game.saveLocation + ' lvl: ' + levelNum);
+        storage = window.localStorage.getItem(Game.saveLocation + ' lvl: ' + this.levelNum);
         if (storage !== null) data = decodeURI(storage).split('|').filter(function(n) {
             return n !== '';
         });
         if (data === undefined) {
-            return null; // there is no previous save of this level
+            return false; // there is no previous save of this level
         }
 
         // LATER check version number HERE if a new feature is implemented that doesn't work with older saves
-        // (version = parseInt(data[0]);
+        // version = parseInt(data[0]);
 
         w = parseInt(data[1].split(',')[0]);
         h = parseInt(data[1].split(',')[1]);
@@ -804,7 +1047,6 @@ class Level {
                     break;
                 case 'R':
                     tiles[pos] = new ReceptorTile(pos % w, Math.floor(pos / w), dir, info[3]);
-                    //(<ReceptorTile> tile).receptors = [];
                     break;
                 default:
                     console.error("unknown type saved in local storage: " + id);
@@ -812,11 +1054,22 @@ class Level {
             }
         }
 
-        // LATER version check on board load
-        return new Level(w, h, levelNum, tiles);
+        this.w = w;
+        this.h = h;
+        this.tiles = tiles;
+
+        return true;
     }
 
-    saveLevelString(): void {
+    removeFromMemory(): void {
+        if (typeof (Storage) === "undefined") {
+            return; // LATER USE COOKIES HERE INSTEAD ALSO?
+        }
+        if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + this.levelNum) !== null) window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + this.levelNum);
+        this.loadDefaultLevel();
+    }
+
+    saveToMemory(): void {
         var str = '', i, j, tile, receptors;
         if (typeof (Storage) === "undefined") {
             console.error("Failed to save data. Please update your browser.");
@@ -850,8 +1103,8 @@ class Level {
         window.localStorage.setItem(Game.saveLocation + ' lvl: ' + this.levelNum, encodeURI(str)); // LATER add more encryption to prevent cheating!
     }
 
-    /* Only used to generate the default levels, just so I can make a level with the built-in editor, and export it with a click */
-    saveLevelArray(): string {
+    /* Only used to generate the default levels, so I can make a level with the built-in editor, and export it with a click */
+    getLevelString(): string {
         var i, j, tile, receptors, lvl = new Array<any>(3);
 
         lvl[0] = this.w;
@@ -872,11 +1125,11 @@ class Level {
                     else lvl[2][i] = [ID.POINTER, tile.dir, getBoolShorthand(tile.on), tile.colour];
                     break;
                 case ID.RECEPTOR:
-                    receptors = 'XXXX';
+                    receptors = "XXXX";
                     for (j = 0; j < 4; j++) {
                         if (tile.receptors[j] !== null) receptors = receptors.substring(0, j) + getColourShorthand(tile.receptors[j].colour) + receptors.substring(j + 1);
                     }
-                    lvl[2][i] = [ID.RECEPTOR, tile.dir, receptors];
+                    lvl[2][i] = [ID.RECEPTOR, tile.dir, "'" + receptors + "'"];
                     break;
             }
         }
@@ -892,320 +1145,84 @@ class Level {
         return str;
     }
 
+        static anyArrayToTileArray(w: number, h: number, arr: Array<any>): Array<Tile> {
+            var tiles = new Array<Tile>(arr.length);
+            for (var i = 0; i < w * h; i++) {
+
+                tiles[i] = Level.getNewDefaultTile(arr[i], i % w, Math.floor(i / w));
+
+                if (tiles[i] === null) { // its a more complex type (it contains a sub-array)
+                    switch (arr[i][0]) {
+                        case ID.BLANK:
+                            console.error("Blank tiles shouldn't be saved using arrays (index: " + i + ")");
+                            tiles[i] = new BlankTile(i % w, Math.floor(i / w));
+                            break;
+                        case ID.MIRROR:
+                            tiles[i] = new MirrorTile(i % w, Math.floor(i / w), arr[i][1]);
+                            break;
+                        case ID.POINTER:
+                            tiles[i] = new PointerTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2], arr[i][3]);
+                            break;
+                        case ID.RECEPTOR:
+                            tiles[i] = new ReceptorTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2]);
+                            break;
+                        default:
+                            console.error("Invalid tile property: " + arr[i] + " at index " + i);
+                            break;
+                    }
+                }
+            }
+            return tiles;
+        }
+
+        static getNewDefaultTile(id: number, x: number, y: number): Tile {
+            switch (id) {
+                case ID.BLANK:
+                    return new BlankTile(x, y);
+                case ID.MIRROR:
+                    return new MirrorTile(x, y, DIRECTION.NORTH);
+                case ID.POINTER:
+                    return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
+                case ID.RECEPTOR:
+                    return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
+            }
+            return null;
+        }
+
     copy(): Level {
-        return new Level(this.w, this.h, this.levelNum, this.tiles);
+        return new Level(this.levelNum, this.w, this.h, this.tiles);
     }
 
 }
 
-class StateManager {
-    states: BasicState[];
+class Colour {
+    static PURPLE = '#3B154B';
+    static GREEN = '#004500';
+    static GRAY = '#0A0A0A';
+    static DARK_GRAY = '#121212';
+    static LIGHT_GRAY = '#555'
 
-    constructor() {
-        this.states = [];
-        this.states.push(new MainMenuState(this));
-    }
-
-    update(): void {
-        if (this.states.length > 0) {
-            this.currentState().update();
+    static nextColor(colour: number, useWhite: boolean) {
+        switch (colour) {
+            case COLOUR.RED:
+                return COLOUR.GREEN;
+            case COLOUR.GREEN:
+                return COLOUR.BLUE;
+            case COLOUR.BLUE:
+                if (useWhite) return COLOUR.WHITE;
+                return COLOUR.RED;
+            case COLOUR.WHITE:
+                return COLOUR.RED;
         }
-    }
-
-    render(): void {
-        if (this.states.length > 0) {
-            this.currentState().render();
-        }
-    }
-
-    enterState(state: string, levelNum?: number): void { // levelNum only used when entering a game state
-        this.currentState().hide();
-        if (state === "game") this.states.push(this.getState(state, levelNum || 0));
-        else this.states.push(this.getState(state));
-    }
-
-    getState(state: string, levelNum?: number): BasicState {
-        switch (state) {
-            case "mainmenu":
-                return new MainMenuState(this);
-                break;
-            case "about":
-                return new AboutState(this);
-                break;
-            case "levelselect":
-                return new LevelSelectState(this);
-                break;
-            case "game":
-                return new GameState(this, levelNum);
-                break;
-        }
-        return null;
-    }
-
-    enterPreviousState(): boolean {
-        if (this.states.length > 1) { // if there is only one state, we can't go back any further
-            this.currentState().destroy();
-            this.states.pop();
-            this.currentState().restore();
-            return true;
-        }
-
-        return false;
-    }
-
-    currentState(): BasicState {
-        return this.states[this.states.length - 1];
+        return COLOUR.RED;
     }
 }
 
-class Game {
-    static version: number = 0.041;
-    static releaseStages = { DEVELOPMENT: "development", PRODUCTION: "production" };
-    static releaseStage: string = Game.releaseStages.DEVELOPMENT; // RELEASE make production
-    static images = [];
-    static debug: boolean = true;
-    static preferences = { 'warn': Game.debug };
-    static tileSize: number = 64;
-    static selectedTile: number = ID.BLANK;
-    static saveLocation: string = "Mirrors";
-
-    /*
-     *   Levels are stored as follows:
-     *   In the simplest form, just a 1D array of numbers   e.g. [0, 1, 2, 0, 2], with each number cooresponding to a tile type
-     *   However, if a tile has more information than just type (everything except blank types) then a sub-array will be
-     *   used to store that info     e.g. [0, [1, 1], 2, 0, [2, 1, 2], 1]    if this method is used, not every complex
-     *   element needs to be in an array, if the default direction, colour, etc. is wanted (FYI it's NORTH & RED)
-     *   If an element does use the sub-array method, it MUST have all fields filled out, even if they are the same as the defaults
-     *   Mirror: [ID, DIR]
-     *   Pointer: [ID, DIR, ON, COL]
-     *   Receptor: [ID, DIR, RECEPTORS STRING (NESW, 'R', 'G', 'B', 'W', 'X' <- blank)]
-     *
-     *   eg.
-     *   Mirror: [1, 1]
-     *   Pointer: [2, 3, 1, 2]
-     *   Receptor: [3, 1, "RBXW"]
-     */
-
-    /* The default game levels (these NEVER get mutated) */
-    static defaultLevels = [
-        [10, 8, // w, h
-            [1, [1, 1], 0, 1, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 1]],
-        [10, 8,
-            [[2, 3, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 2,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
-    ];
-
-    /* Stores which levels the player has completed */
-    static completedLevels: boolean[];
-
-    static keysdown: boolean[] = [];
-    static sm: StateManager;
-
-    static offset: number[][] = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // tile offsets (N, E, S, W)
-
-    static ticks: number = 0;
-    static fps: number = 60;
-
-    static lvlselectButtonSpeed: number = 6; // the speed the level selection buttons are going
-    static lvlselectButtonDirection: number = 0;
-
-    static stats: any;
-
-    static KEYBOARD = {
-        BACKSPACE: 8,
-        TAB: 9,
-        RETURN: 13,
-        ESC: 27,
-        SPACE: 32,
-        PAGEUP: 33,
-        PAGEDOWN: 34,
-        END: 35,
-        HOME: 36,
-        LEFT: 37,
-        UP: 38,
-        RIGHT: 39,
-        DOWN: 40,
-        INSERT: 45,
-        DELETE: 46,
-        ZERO: 48,
-        ONE: 49,
-        TWO: 50,
-        THREE: 51,
-        FOUR: 52,
-        FIVE: 53,
-        SIX: 54,
-        SEVEN: 55,
-        EIGHT: 56,
-        NINE: 57,
-        A: 65,
-        B: 66,
-        C: 67,
-        D: 68,
-        E: 69,
-        F: 70,
-        G: 71,
-        H: 72,
-        I: 73,
-        J: 74,
-        K: 75,
-        L: 76,
-        M: 77,
-        N: 78,
-        O: 79,
-        P: 80,
-        Q: 81,
-        R: 82,
-        S: 83,
-        T: 84,
-        U: 85,
-        V: 86,
-        W: 87,
-        X: 88,
-        Y: 89,
-        Z: 90,
-        TILDE: 192,
-        SHIFT: 999
-    };
-
-    static init() {
-        document.title = "Mirrors V" + Game.version;
-        get('versionNumber').innerHTML = '<a href="https://github.com/ajweeks/mirrors-ts" target="_blank" style="color: inherit; text-decoration: none;">' + "V." + Game.version + '</a>';
-
-        Game.images[IMAGE.BLANK] = new Image();
-        Game.images[IMAGE.BLANK].src = "res/blank.png";
-        Game.images[IMAGE.BLANK].alt = "blank";
-
-        Game.images[IMAGE.MIRROR] = new Image();
-        Game.images[IMAGE.MIRROR].src = "res/mirror.png";
-        Game.images[IMAGE.MIRROR].alt = "mirror";
-
-        Game.images[IMAGE.POINTER] = new Image();
-        Game.images[IMAGE.POINTER].src = "res/pointer.png";
-        Game.images[IMAGE.POINTER].alt = "pointer";
-
-        Game.images[IMAGE.RECEPTOR] = [];
-
-        Game.images[IMAGE.RECEPTOR][COLOUR.RED] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.RED].src = "res/receptor_red.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.RED].alt = "receptor";
-
-        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].src = "res/receptor_green.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].alt = "receptor";
-
-        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].src = "res/receptor_blue.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].alt = "receptor";
-
-        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].src = "res/receptor_white.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].alt = "receptor";
-
-        Game.images[IMAGE.LASER] = [];
-
-        Game.images[IMAGE.LASER][COLOUR.RED] = new Image();
-        Game.images[IMAGE.LASER][COLOUR.RED].src = "res/laser_red.png";
-        Game.images[IMAGE.LASER][COLOUR.RED].alt = "red laser";
-
-        Game.images[IMAGE.LASER][COLOUR.GREEN] = new Image();
-        Game.images[IMAGE.LASER][COLOUR.GREEN].src = "res/laser_green.png";
-        Game.images[IMAGE.LASER][COLOUR.GREEN].alt = "green laser";
-
-        Game.images[IMAGE.LASER][COLOUR.BLUE] = new Image();
-        Game.images[IMAGE.LASER][COLOUR.BLUE].src = "res/laser_blue.png";
-        Game.images[IMAGE.LASER][COLOUR.BLUE].alt = "blue laser";
-
-        Game.stats = Stats();
-        Game.stats.setMode(0); // 0: fps, 1: ms
-        Game.stats.domElement.style.position = 'absolute';
-        Game.stats.domElement.style.left = '0px';
-        Game.stats.domElement.style.top = '0px';
-        document.body.appendChild(Game.stats.domElement);
-
-        Game.sm = new StateManager();
-
-        Game.completedLevels = new Array<boolean>(Game.defaultLevels.length); // TODO finish implementing level completion
-
-        Game.defaultPrefs();
-    }
-
-    static renderImage(context: CanvasRenderingContext2D, x: number, y: number, image, dir: number, size: number): void {
-        context.save();
-        context.translate(x, y);
-        context.rotate(dir * 90 * (Math.PI / 180));
-
-        try {
-            context.drawImage(image, -size / 2, -size / 2);
-        } catch (e) {
-            throw new Error(e.message);
-        }
-
-        context.restore();
-    }
-
-    static defaultPrefs(): void {
-        setDebug(Game.releaseStage === Game.releaseStages.DEVELOPMENT);
-        setLevelEditMode(false);
-        Game.preferences.warn = !Game.debug;
-    }
-
-    // LATER add a tutorial overlay? controls at least?
-
-    static update(): void {
-        Game.ticks += 1;
-
-        if (Game.keysdown[Game.KEYBOARD.ESC]) {
-            this.sm.enterPreviousState();
-        } else if (Game.keysdown[Game.KEYBOARD.ZERO]) {
-            toggleLevelEditMode();
-        } else if (Game.keysdown[Game.KEYBOARD.NINE]) {
-            toggleDebug();
-        }
-
-        Game.sm.update();
-
-        for (var i = 0; i < Game.keysdown.length; i++) {
-            Game.keysdown[i] = false;
-        }
-    }
-
-    static render(): void {
-        Game.sm.render();
-    }
-
-    // Main loop
-    static loop(): void {
-        Game.stats.begin();
-
-        Game.update();
-        if (document.hasFocus() || Game.ticks % 5 === 0) {
-            Game.render();
-        }
-
-        Game.stats.end();
-
-        window.setTimeout(Game.loop, 1000 / Game.fps);
-    }
+function getBoolShorthand(bool): number {
+    return bool === true || bool === 1 || bool === "1" ? 1 : 0;
 }
 
-function getBoolShorthand(bool: boolean) {
-    return bool === true ? 1 : 0;
-}
-
-function getColourShorthand(colour) {
+function getColourShorthand(colour: number): string {
     switch (colour) {
         case COLOUR.RED:
             return 'R';
@@ -1219,7 +1236,7 @@ function getColourShorthand(colour) {
     return 'NULL';
 }
 
-function getColourLonghand(colour) {
+function getColourLonghand(colour: string): number {
     switch (colour) {
         case 'R':
             return COLOUR.RED;
@@ -1233,7 +1250,7 @@ function getColourLonghand(colour) {
     return -1;
 }
 
-function decimalToHex(decimal: number) {
+function decimalToHex(decimal: number): string {
     var n = Number(decimal).toString(16).toUpperCase();
     while (n.length < 2) {
         n = "0" + n;
@@ -1241,7 +1258,7 @@ function decimalToHex(decimal: number) {
     return n;
 }
 
-function hexToDecimal(hex) {
+function hexToDecimal(hex): string {
     var n = String(parseInt(hex, 16));
     while (n.length < 2) {
         n = "0" + n;
@@ -1249,11 +1266,11 @@ function hexToDecimal(hex) {
     return n;
 }
 
-function parseBool(value: string): boolean {
-    return value === "1" || value.toLowerCase() === "true";
+function parseBool(value): boolean {
+    return value === "1" || value === 1 || value === true;
 }
 
-function assert(condition, message: string) {
+function assert(condition, message: string): void {
     if (!condition) {
         message = message || "Assertion failed";
         if (typeof Error !== "undefined") {
@@ -1263,27 +1280,30 @@ function assert(condition, message: string) {
     }
 }
 
-function selectionTileClick(event, down: boolean, id: number) {
+function selectionTileClick(event: MouseEvent, down: boolean, id: number): void {
     if (clickType(event) !== 'left') return;
     if (id === 888) { // save button
-        (<GameState> Game.sm.currentState()).level.saveLevelString();
-        console.log((<GameState> Game.sm.currentState()).level.saveLevelArray());
+        prompt("This is the level code: copy and paste it somewhere you'll remember", (<GameState> Game.sm.currentState()).level.getLevelString());
     } else if (id === 887) { // clear button
         (<GameState>Game.sm.currentState()).level.clear();
+    } else if (id === 886) {
+        var msg = "Hello curious player! You are currently in Mirror's level editor. Here you can create your own levels! The print button will export the save as a string." +
+            " Level loading has not yet been implemented, but it might be soon. \n\nTip: hold crtl to edit tiles while still in lvl edit mode";
+        alert(msg);
     } else if (down) {
-        Game.selectedTile = id;
+        Game.selectedTileID = id;
     }
 }
 
-function toggleLevelEditMode() {
+function toggleLevelEditMode(): void {
     setLevelEditMode(!GameState.levelEditMode);
 }
 
-function setLevelEditMode(levelEditMode) {
+function setLevelEditMode(levelEditMode: boolean): void {
     GameState.levelEditMode = levelEditMode;
     if (GameState.levelEditMode) {
         setDebug(true);
-        get('lvlEditInfo').style.backgroundColor = "#134304";
+        get('lvlEditInfo').style.backgroundColor = Colour.GREEN;
 
         if (Game.sm.currentState().id === STATE.GAME) {
             get('lvledittilesarea').style.display = "block";
@@ -1294,11 +1314,11 @@ function setLevelEditMode(levelEditMode) {
     }
 }
 
-function toggleDebug() {
+function toggleDebug(): void {
     setDebug(!Game.debug);
 }
 
-function setDebug(debug) {
+function setDebug(debug: boolean): void {
     Game.debug = debug;
     if (Game.debug === false) setLevelEditMode(false);
     if (Game.debug) Game.stats.domElement.style.display = "block";
@@ -1306,56 +1326,60 @@ function setDebug(debug) {
 
     if (Game.debug) {
         get('infoarea').style.display = "block";
-        get('debugInfo').style.backgroundColor = "#134304";
+        get('debugInfo').style.backgroundColor = Colour.GREEN;
     } else {
         get('infoarea').style.display = "none";
         get('debugInfo').style.backgroundColor = "initial";
     }
 }
 
-function clockwise(dir) {
-    dir += 1;
-    if (dir > 3) {
-        dir = 0;
-    }
-    return dir;
-}
+class Direction {
 
-function anticlockwise(dir) {
-    dir -= 1;
-    if (dir < 0) {
-        dir = 3;
+    static clockwise(dir: number): number {
+        dir += 1;
+        if (dir > 3) {
+            dir = 0;
+        }
+        return dir;
     }
-    return dir;
-}
 
-function add(dir1: number, dir2: number): number {
-    return (dir1 + dir2) % 4;
-}
-
-function sub(dir1: number, dir2: number): number {
-    var result = dir1 - dir2;
-    if (result < 0) {
-        dir1 = (4 + result) % 4;
-    } else {
-        dir1 = result;
+    static anticlockwise(dir: number): number {
+        dir -= 1;
+        if (dir < 0) {
+            dir = 3;
+        }
+        return dir;
     }
-    return dir1;
-}
 
-function opposite(dir: number): number {
-    if (dir === DIRECTION.NORTH) {
-        return DIRECTION.SOUTH;
-    } else if (dir === DIRECTION.EAST) {
-        return DIRECTION.WEST;
-    } else if (dir === DIRECTION.SOUTH) {
-        return DIRECTION.NORTH;
-    } else if (dir === DIRECTION.WEST) {
-        return DIRECTION.EAST;
-    } else {
-        console.error("Invalid direction!! " + dir);
+    static add(dir1: number, dir2: number): number {
+        return (dir1 + dir2) % 4;
     }
-    return 0;
+
+    static sub(dir1: number, dir2: number): number {
+        var result = dir1 - dir2;
+        if (result < 0) {
+            dir1 = (4 + result) % 4;
+        } else {
+            dir1 = result;
+        }
+        return dir1;
+    }
+
+    static opposite(dir: number): number {
+        if (dir === DIRECTION.NORTH) {
+            return DIRECTION.SOUTH;
+        } else if (dir === DIRECTION.EAST) {
+            return DIRECTION.WEST;
+        } else if (dir === DIRECTION.SOUTH) {
+            return DIRECTION.NORTH;
+        } else if (dir === DIRECTION.WEST) {
+            return DIRECTION.EAST;
+        } else {
+            console.error("Invalid direction!! " + dir);
+        }
+        return 0;
+    }
+
 }
 
 function keyPressed(event: KeyboardEvent, down: boolean): void {
@@ -1363,10 +1387,10 @@ function keyPressed(event: KeyboardEvent, down: boolean): void {
         var keycode = event.keyCode ? event.keyCode : event.which;
         Game.keysdown[keycode] = down;
 
-        if (Game.keysdown[Game.KEYBOARD.ONE]) Game.selectedTile = 0;
-        if (Game.keysdown[Game.KEYBOARD.TWO]) Game.selectedTile = 1;
-        if (Game.keysdown[Game.KEYBOARD.THREE]) Game.selectedTile = 2;
-        if (Game.keysdown[Game.KEYBOARD.FOUR]) Game.selectedTile = 3;
+        if (Game.keysdown[Game.KEYBOARD.ONE]) Game.selectedTileID = 0;
+        if (Game.keysdown[Game.KEYBOARD.TWO]) Game.selectedTileID = 1;
+        if (Game.keysdown[Game.KEYBOARD.THREE]) Game.selectedTileID = 2;
+        if (Game.keysdown[Game.KEYBOARD.FOUR]) Game.selectedTileID = 3;
     }
 }
 
@@ -1448,14 +1472,15 @@ function getAbsolutePosition(element) {
     return r;
 }
 
-window.onbeforeunload = function(event) {
-    if (Game.debug === false) {
-        if (typeof event == 'undefined') event = window.event;
-        if (event) event.returnValue = 'Are you sure you want to close Mirrors?';
-    }
-};
-
 window.onload = function() {
     Game.init();
     Game.loop();
 };
+
+// This is actually just really annoying and useless, since we're saving on click anyway
+// window.onbeforeunload = function(event: BeforeUnloadEvent) {
+//     if (Game.debug === false) {
+//         if (typeof event == 'undefined') event = window.event;
+//         if (event) event.returnValue = 'Are you sure you want to close Mirrors?';
+//     }
+// };

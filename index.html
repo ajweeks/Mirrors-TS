@@ -61,11 +61,17 @@
         h2 {
             font-weight: normal;
             font-size: 36px;
-            color: aliceblue;
+            color: white;
             text-align: center;
             cursor: default;
         }
-
+        h3 {
+            font-weight: normal;
+            font-size: 30px;
+            color: white;
+            text-align: center;
+            cursor: default;
+        }
         #mainmenubtns {
             margin: 10% auto;
         }
@@ -80,17 +86,77 @@
             width: 130px;
             height: 45px;
             line-height: 45px;
+            border-radius: 4px;
+            box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 5px inset;
         }
 
-        #saveButton, #clearButton {
+        .lvlselect {
+            background-color: #3e3e3e;
+            cursor: default;
+            box-shadow: none;
+        }
+
+        .lvlselect.enabled {
+            cursor: pointer;
+            box-shadow: inherit;
+            background-color: #3B154B;
+        }
+
+        .button:hover:not(.lvlselect), .lvlselect.enabled:hover {
+            box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 12px inset;
+            text-shadow: black 1px 1px 10px;
+        }
+
+        #popup {
+          position: absolute;
+          top: 125px;
+          left: 50%;
+          margin-left: -135px;
+          padding: 6px 10px;
+          border: 4px ridge #CC9900;
+          border-color: #C49F05 #A58500 #AA8900 #C9A201;
+          border-radius: 3px;
+          z-index: 1500000;
+          background-color: black;
           color: white;
           text-align: center;
+          display: none;
+        }
+
+        #popup h3 {
+          margin: 10px 0;
+        }
+
+        #popup p {
           font-size: 20px;
         }
 
-        [class~=lvlselect] {
-            background-color: #3e3e3e;
-            cursor: default;
+        .popupButton {
+            display: inline-block;
+            width: 120px;
+            height: 45px;
+            line-height: 45px;
+            margin: 4px;
+            font-size: 24px;
+        }
+
+        .selectionTile {
+          position: relative;
+          height: 64px;
+          width: 64px;
+        }
+
+        .selectionTile p {
+          color: white;
+          text-align: center;
+          height: 44px;
+          padding-top: 20px;
+          font-size: 20px;
+          margin: 0;
+        }
+
+        .selectionTile p:hover {
+          text-shadow: 0 0 3px #BFFFBF;
         }
 
         #backarrow, #forwardarrow {
@@ -137,23 +203,17 @@
             cursor: pointer;
             position: absolute;
         }
-        #tiles {
-            z-index: 2;
-        }
         #gamecanvas, #lvledittilescanvas {
             position: absolute;
             top: 0;
             left: 0;
-            z-index: -3;
+        }
+        #lvledittilescanvas  {
+          z-index: -1;
         }
         #lvledittilesarea {
             cursor: pointer;
             position: absolute;
-        }
-        .selectionTile {
-            position: relative;
-            height: 64px;
-            width: 64px;
         }
 
         .row { height: 64px; }
@@ -213,6 +273,17 @@
             color: #900202;
         }
 
+        #darken {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 1499999;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: none;
+        }
+
         #versionNumber {
             position: fixed;
             left: 0;
@@ -256,16 +327,19 @@
 
     <div id="levelselectstate" style="display: none;"></div>
 
-    <div id="gameboard" oncontextmenu="return false;" onmousedown="boardClick(event, true)" style="display: none">
+    <div id="gameboard" oncontextmenu="return false;" style="display: none">
         <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: -430px; margin-top: -40px;">Back</div>
-        <div id="tiles"></div>
-        <canvas id="gamecanvas"></canvas>
+        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.currentState().level.removeFromMemory();" style="margin-left: -430px; margin-top: 0px;">Reset</div>
+        <canvas id="gamecanvas" onmousedown="boardClick(event, true)" ></canvas>
     </div>
 
     <div id="lvledittilesarea" style="display: none">
         <div id="lvledittiles"></div>
         <canvas id="lvledittilescanvas"></canvas>
     </div>
+
+    <div id="darken"></div>
+    <div id="popup"></div>
 
     <div id="versionNumber"></div>
 

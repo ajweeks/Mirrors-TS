@@ -52,6 +52,136 @@ var DIRECTION;
     DIRECTION[DIRECTION["SE"] = 2] = "SE";
     DIRECTION[DIRECTION["SW"] = 3] = "SW";
 })(DIRECTION || (DIRECTION = {}));
+var Game = (function () {
+    function Game() {
+    }
+    Game.init = function () {
+        document.title = "Mirrors V" + Game.version;
+        get('versionNumber').innerHTML = '<a href="https://github.com/ajweeks/mirrors-ts" target="_blank" style="color: inherit; text-decoration: none;">' + "V." + Game.version + '</a>';
+        Game.images[IMAGE.BLANK] = new Image();
+        Game.images[IMAGE.BLANK].src = "res/blank.png";
+        Game.images[IMAGE.BLANK].alt = "blank";
+        Game.images[IMAGE.MIRROR] = new Image();
+        Game.images[IMAGE.MIRROR].src = "res/mirror.png";
+        Game.images[IMAGE.MIRROR].alt = "mirror";
+        Game.images[IMAGE.POINTER] = new Image();
+        Game.images[IMAGE.POINTER].src = "res/pointer.png";
+        Game.images[IMAGE.POINTER].alt = "pointer";
+        Game.images[IMAGE.RECEPTOR] = [];
+        Game.images[IMAGE.RECEPTOR][COLOUR.RED] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.RED].src = "res/receptor_red.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.RED].alt = "receptor";
+        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].src = "res/receptor_green.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].alt = "receptor";
+        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].src = "res/receptor_blue.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].alt = "receptor";
+        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE] = new Image();
+        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].src = "res/receptor_white.png";
+        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].alt = "receptor";
+        Game.images[IMAGE.LASER] = [];
+        Game.images[IMAGE.LASER][COLOUR.RED] = new Image();
+        Game.images[IMAGE.LASER][COLOUR.RED].src = "res/laser_red.png";
+        Game.images[IMAGE.LASER][COLOUR.RED].alt = "red laser";
+        Game.images[IMAGE.LASER][COLOUR.GREEN] = new Image();
+        Game.images[IMAGE.LASER][COLOUR.GREEN].src = "res/laser_green.png";
+        Game.images[IMAGE.LASER][COLOUR.GREEN].alt = "green laser";
+        Game.images[IMAGE.LASER][COLOUR.BLUE] = new Image();
+        Game.images[IMAGE.LASER][COLOUR.BLUE].src = "res/laser_blue.png";
+        Game.images[IMAGE.LASER][COLOUR.BLUE].alt = "blue laser";
+        Game.stats = Stats();
+        Game.stats.setMode(0);
+        Game.stats.domElement.style.position = 'absolute';
+        Game.stats.domElement.style.left = '0px';
+        Game.stats.domElement.style.top = '0px';
+        document.body.appendChild(Game.stats.domElement);
+        Game.sm = new StateManager();
+        Game.completedLevels = new Array(Game.defaultLevels.length);
+        Game.setDefaultPrefs();
+    };
+    Game.renderImage = function (context, x, y, image, dir, size) {
+        context.save();
+        context.translate(x, y);
+        context.rotate(dir * 90 * (Math.PI / 180));
+        try {
+            context.drawImage(image, -size / 2, -size / 2);
+        }
+        catch (e) {
+            throw new Error(e.message);
+        }
+        context.restore();
+    };
+    Game.setDefaultPrefs = function () {
+        setDebug(Game.releaseStage === Game.releaseStages.DEVELOPMENT);
+        setLevelEditMode(Game.debug);
+        Game.preferences.warn = !Game.debug;
+    };
+    Game.setPopup = function (str) {
+        get('darken').style.display = "block";
+        get('popup').style.display = "block";
+        get('popup').innerHTML = str;
+        Game.popupUp = true;
+    };
+    Game.clearPopup = function () {
+        get('darken').style.display = "none";
+        get('popup').style.display = "none";
+        get('popup').innerHTML = "";
+        Game.popupUp = false;
+    };
+    Game.update = function () {
+        Game.ticks += 1;
+        if (Game.keysdown[Game.KEYBOARD.ESC]) {
+            this.sm.enterPreviousState();
+        }
+        else if (Game.keysdown[Game.KEYBOARD.ZERO]) {
+            toggleLevelEditMode();
+        }
+        else if (Game.keysdown[Game.KEYBOARD.NINE]) {
+            toggleDebug();
+        }
+        Game.sm.update();
+        for (var i = 0; i < Game.keysdown.length; i++) {
+            Game.keysdown[i] = false;
+        }
+    };
+    Game.render = function () {
+        Game.sm.render();
+    };
+    Game.loop = function () {
+        Game.stats.begin();
+        Game.update();
+        if (document.hasFocus() || Game.ticks % 5 === 0) {
+            Game.render();
+        }
+        Game.stats.end();
+        window.setTimeout(Game.loop, 1000 / Game.fps);
+    };
+    Game.version = 0.041;
+    Game.releaseStages = { DEVELOPMENT: "development", PRODUCTION: "production" };
+    Game.releaseStage = Game.releaseStages.DEVELOPMENT;
+    Game.images = [];
+    Game.preferences = { 'warn': Game.debug };
+    Game.selectedTileID = ID.BLANK;
+    Game.saveLocation = "Mirrors";
+    Game.popupUp = false;
+    Game.defaultLevels = [
+        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 0], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [3, 3, 'GXXX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 1, 'RXXX'], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [2, 3, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [10, 8, [[2, 1, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1, 1], 0, [1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 0, 1, 0], 0, 0, 0, 0, 0, 0, [3, 2, 'XXRB'], 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1]]],
+        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    ];
+    Game.keysdown = [];
+    Game.offset = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+    Game.ticks = 0;
+    Game.fps = 60;
+    Game.lvlselectButtonSpeed = 6;
+    Game.lvlselectButtonDirection = 0;
+    Game.KEYBOARD = {
+        BACKSPACE: 8, TAB: 9, RETURN: 13, ESC: 27, SPACE: 32, PAGEUP: 33, PAGEDOWN: 34, END: 35, HOME: 36, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, INSERT: 45, DELETE: 46, ZERO: 48, ONE: 49, TWO: 50, THREE: 51, FOUR: 52, FIVE: 53, SIX: 54, SEVEN: 55, EIGHT: 56, NINE: 57, A: 65, B: 66, C: 67, D: 68, E: 69, F: 70, G: 71, H: 72, I: 73, J: 74, K: 75, L: 76, M: 77, N: 78, O: 79, P: 80, Q: 81, R: 82, S: 83, T: 84, U: 85, V: 86, W: 87, X: 88, Y: 89, Z: 90, TILDE: 192, SHIFT: 999
+    };
+    return Game;
+})();
 var BasicState = (function () {
     function BasicState(id, sm) {
         this.id = id;
@@ -115,8 +245,9 @@ var LevelSelectState = (function (_super) {
             str += '<div class="col">';
             for (y = 0; y < this.height; y++) {
                 n = (x * this.height) + y;
-                str += '<div class="button lvlselect" id="' + n + 'lvlselectButton" ' +
-                    (Game.defaultLevels[n] === undefined ? '' : 'onmousedown="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + n + ');"') +
+                var enabled = Game.defaultLevels[n] !== undefined;
+                str += '<div class="button lvlselect' + (enabled ? ' enabled' : '') + '" id="' + n + 'lvlselectButton" ' +
+                    (enabled ? 'onmousedown="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + n + ');"' : '') +
                     '>' + decimalToHex(n) + '</div>';
             }
             str += '</div>';
@@ -149,12 +280,11 @@ var LevelSelectState = (function (_super) {
     LevelSelectState.updateButtonBgs = function () {
         var i;
         for (i = 0; i < Game.defaultLevels.length; i++) {
-            get(i + 'lvlselectButton').style.cursor = "pointer";
             if (Game.completedLevels[i] === true) {
-                get(i + 'lvlselectButton').style.backgroundColor = "#007900";
+                get(i + 'lvlselectButton').style.backgroundColor = Colour.GREEN;
             }
             else {
-                get(i + 'lvlselectButton').style.backgroundColor = "#501967";
+                get(i + 'lvlselectButton').style.backgroundColor = null;
             }
         }
     };
@@ -174,50 +304,59 @@ var GameState = (function (_super) {
     __extends(GameState, _super);
     function GameState(sm, levelNum) {
         _super.call(this, STATE.GAME, sm);
-        GameState.levelEditMode = Game.debug;
         this.levelNum = levelNum;
-        this.setLevel();
+        GameState.levelEditTiles = [
+            Level.getNewDefaultTile(ID.BLANK, 0, 0),
+            Level.getNewDefaultTile(ID.MIRROR, 0, 0),
+            Level.getNewDefaultTile(ID.POINTER, 0, 0),
+            Level.getNewDefaultTile(ID.RECEPTOR, 0, 0)];
+        this.level = new Level(this.levelNum);
         get('gameboard').style.display = "block";
         get('gameboard').style.left = "50%";
-        get('gameboard').style.marginLeft = -(this.level.w * Game.tileSize) / 2 + "px";
-        get('gameboard').style.width = this.level.w * Game.tileSize + "px";
-        get('gameboard').style.height = this.level.h * Game.tileSize + "px";
-        get('gamecanvas').width = this.level.w * Game.tileSize;
-        get('gamecanvas').height = this.level.h * Game.tileSize;
+        get('gameboard').style.marginLeft = -(this.level.w * Tile.size) / 2 + "px";
+        get('gameboard').style.width = this.level.w * Tile.size + "px";
+        get('gameboard').style.height = this.level.h * Tile.size + "px";
+        get('gamecanvas').width = this.level.w * Tile.size;
+        get('gamecanvas').height = this.level.h * Tile.size;
         get('lvledittiles').innerHTML = '<div>' +
-            '<div class="selectionTile" id="0tile" onmousedown="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" style="background-image: url(res/blank.png)"></div>' +
-            '<div class="selectionTile" id="1tile" onmousedown="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" style="background-image: url(res/mirror.png)"></div>' +
-            '<div class="selectionTile" id="2tile" onmousedown="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" style="background-image: url(res/pointer.png)"></div>' +
-            '<div class="selectionTile" id="3tile" onmousedown="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" style="background-image: url(res/receptor_white.png)"></div>' +
-            '<div class="selectionTile" id="saveButton" onmousedown="selectionTileClick(event, true, 888)">save</div>' +
-            '<div class="selectionTile" id="clearButton" onmousedown="selectionTileClick(event, true, 887)">clear</div>' +
+            '<div class="selectionTile" id="0tile" onmousedown="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" ' +
+            'onmouseover="get(\'0tilep\').style.visibility=\'visible\'" onmouseout="get(\'0tilep\').style.visibility=\'hidden\'"><p id="0tilep" style="visibility: hidden">blank</p></div>' +
+            '<div class="selectionTile" id="1tile" onmousedown="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" ' +
+            'onmouseover="get(\'1tilep\').style.visibility=\'visible\'" onmouseout="get(\'1tilep\').style.visibility=\'hidden\'"><p id="1tilep" style="visibility: hidden">mirror</p></div>' +
+            '<div class="selectionTile" id="2tile" onmousedown="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" ' +
+            'onmouseover="get(\'2tilep\').style.visibility=\'visible\'" onmouseout="get(\'2tilep\').style.visibility=\'hidden\'"><p id="2tilep" style="visibility: hidden">pointer</p></div>' +
+            '<div class="selectionTile" id="3tile" onmousedown="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" ' +
+            'onmouseover="get(\'3tilep\').style.visibility=\'visible\'" onmouseout="get(\'3tilep\').style.visibility=\'hidden\'"><p id="3tilep" style="visibility: hidden">receptor</p></div>' +
+            '<div class="selectionTile" id="printButton" onmousedown="selectionTileClick(event, true, 888)"><p>print</p></div>' +
+            '<div class="selectionTile" id="clearButton" onmousedown="selectionTileClick(event, true, 887)"><p>clear</p></div>' +
+            '<div class="selectionTile" id="helpButton" onmousedown="selectionTileClick(event, true, 886)"><p>help</p></div>' +
             '</div>';
-        get('lvledittilescanvas').width = Game.tileSize;
-        get('lvledittilescanvas').height = 6 * Game.tileSize;
+        get('lvledittilescanvas').width = Tile.size;
+        get('lvledittilescanvas').height = 7 * Tile.size;
         if (GameState.levelEditMode) {
             get('lvledittilesarea').style.display = "block";
         }
-    }
-    GameState.prototype.setLevel = function () {
-        this.level = Level.loadLevelFromMemory(this.levelNum);
-        if (this.level === null) {
-            var lvl = Game.defaultLevels[this.levelNum] || Game.defaultLevels[0];
-            this.level = new Level(lvl[0], lvl[1], this.levelNum, lvl[2]);
+        else {
+            get('lvledittilesarea').style.display = "none";
         }
-    };
+    }
     GameState.prototype.update = function () {
-        this.level.update();
     };
     GameState.prototype.render = function () {
         this.level.render();
         if (GameState.levelEditMode) {
             var context = get('lvledittilescanvas').getContext('2d');
-            for (var i = 0; i < 6; i++) {
-                if (Game.selectedTile === i)
-                    context.fillStyle = "#134304";
+            for (var i = 0; i < 7; i++) {
+                if (Game.selectedTileID === i)
+                    context.fillStyle = Colour.GREEN;
                 else
-                    context.fillStyle = "#121212";
-                context.fillRect(0, i * Game.tileSize, Game.tileSize, Game.tileSize);
+                    context.fillStyle = Colour.DARK_GRAY;
+                context.fillRect(0, i * Tile.size, Tile.size, Tile.size);
+                if (i < GameState.levelEditTiles.length)
+                    GameState.levelEditTiles[i].render(context, Tile.size / 2, i * Tile.size + Tile.size / 2);
+                context.strokeStyle = Colour.LIGHT_GRAY;
+                context.lineWidth = 1;
+                context.strokeRect(0, i * Tile.size, Tile.size, Tile.size);
             }
         }
     };
@@ -227,37 +366,72 @@ var GameState = (function (_super) {
             get('lvledittilesarea').style.display = "block";
     };
     GameState.prototype.destroy = function () {
-        get('tiles').innerHTML = "";
         get('gameboard').style.display = "none";
         get('lvledittilesarea').style.display = "none";
     };
     GameState.prototype.click = function (event, down) {
         this.level.click(event, down);
+        Game.sm.currentState().level.saveToMemory();
     };
     GameState.prototype.hover = function (event, into) {
         this.level.hover(event, into);
     };
     return GameState;
 })(BasicState);
-var Colour = (function () {
-    function Colour() {
+var StateManager = (function () {
+    function StateManager() {
+        this.states = [];
+        this.states.push(new MainMenuState(this));
     }
-    Colour.nextColor = function (colour, useWhite) {
-        switch (colour) {
-            case COLOUR.RED:
-                return COLOUR.GREEN;
-            case COLOUR.GREEN:
-                return COLOUR.BLUE;
-            case COLOUR.BLUE:
-                if (useWhite)
-                    return COLOUR.WHITE;
-                return COLOUR.RED;
-            case COLOUR.WHITE:
-                return COLOUR.RED;
+    StateManager.prototype.update = function () {
+        if (this.states.length > 0) {
+            this.currentState().update();
         }
-        return COLOUR.RED;
     };
-    return Colour;
+    StateManager.prototype.render = function () {
+        if (this.states.length > 0) {
+            this.currentState().render();
+        }
+    };
+    StateManager.prototype.enterState = function (state, levelNum) {
+        this.currentState().hide();
+        if (state === "game")
+            this.states.push(this.getState(state, levelNum || 0));
+        else
+            this.states.push(this.getState(state));
+    };
+    StateManager.prototype.getState = function (state, levelNum) {
+        switch (state) {
+            case "mainmenu":
+                return new MainMenuState(this);
+                break;
+            case "about":
+                return new AboutState(this);
+                break;
+            case "levelselect":
+                return new LevelSelectState(this);
+                break;
+            case "game":
+                return new GameState(this, levelNum);
+                break;
+        }
+        return null;
+    };
+    StateManager.prototype.enterPreviousState = function () {
+        if (this.states[this.states.length - 1].id === STATE.GAME)
+            this.states[this.states.length - 1].level.checkCompleted();
+        if (this.states.length > 1) {
+            this.currentState().destroy();
+            this.states.pop();
+            this.currentState().restore();
+            return true;
+        }
+        return false;
+    };
+    StateManager.prototype.currentState = function () {
+        return this.states[this.states.length - 1];
+    };
+    return StateManager;
 })();
 var Laser = (function () {
     function Laser(entering, exiting, colour) {
@@ -269,9 +443,9 @@ var Laser = (function () {
     }
     Laser.prototype.render = function (context, x, y, dir) {
         if (this.entering !== null)
-            Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], add(dir, this.entering), Game.tileSize);
+            Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], Direction.add(dir, this.entering), Tile.size);
         if (this.exiting !== null)
-            Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], add(dir, this.exiting), Game.tileSize);
+            Game.renderImage(context, x, y, Game.images[IMAGE.LASER][this.colour], Direction.add(dir, this.exiting), Tile.size);
     };
     return Laser;
 })();
@@ -288,7 +462,7 @@ var Receptor = (function () {
         }
     };
     Receptor.prototype.render = function (context, x, y, dir) {
-        Game.renderImage(context, x, y, Game.images[ID.RECEPTOR][this.colour], dir, Game.tileSize);
+        Game.renderImage(context, x, y, Game.images[ID.RECEPTOR][this.colour], dir, Tile.size);
     };
     Receptor.colourTurnsMeOn = function (laserColour, receptorColour) {
         if (receptorColour === COLOUR.WHITE)
@@ -349,7 +523,7 @@ var Tile = (function () {
         for (i = 0; i < this.lasers.length; i++) {
             this.lasers[i].render(context, x, y, 0);
         }
-        Game.renderImage(context, x, y, Game.images[this.id], this.dir, Game.tileSize);
+        Game.renderImage(context, x, y, Game.images[this.id], this.dir, Tile.size);
     };
     Tile.prototype.addLaser = function (laser) {
         this.lasers.push(laser);
@@ -360,6 +534,7 @@ var Tile = (function () {
     Tile.prototype.getNextType = function () {
         return (this.id + 1) % ID.RECEPTOR;
     };
+    Tile.size = 64;
     return Tile;
 })();
 var BlankTile = (function (_super) {
@@ -368,7 +543,7 @@ var BlankTile = (function (_super) {
         _super.call(this, x, y, ID.BLANK);
     }
     BlankTile.prototype.addLaser = function (laser) {
-        laser.exiting = opposite(laser.entering);
+        laser.exiting = Direction.opposite(laser.entering);
         _super.prototype.addLaser.call(this, laser);
     };
     return BlankTile;
@@ -430,30 +605,30 @@ var PointerTile = (function (_super) {
             }
         }
     };
-    PointerTile.prototype.update = function (board) {
+    PointerTile.prototype.update = function (level) {
         if (this.on === false)
             return;
         this.addLaser(new Laser(null, this.dir, this.colour));
-        var checkedTiles = new Array(board.w * board.h), nextDir = this.dir, nextTile = board.getTile(this.x, this.y), xx, yy;
-        for (var i = 0; i < board.w * board.h; i++) {
+        var checkedTiles = new Array(level.w * level.h), nextDir = this.dir, nextTile = level.getTile(this.x, this.y), xx, yy;
+        for (var i = 0; i < level.w * level.h; i++) {
             checkedTiles[i] = 0;
         }
         do {
             xx = nextTile.x + Game.offset[nextDir][0];
             yy = nextTile.y + Game.offset[nextDir][1];
-            if (xx < 0 || xx >= board.w || yy < 0 || yy >= board.h)
+            if (xx < 0 || xx >= level.w || yy < 0 || yy >= level.h)
                 break;
-            if (checkedTiles[xx + yy * board.w] >= 2)
+            if (checkedTiles[xx + yy * level.w] >= 2)
                 break;
             else
-                checkedTiles[xx + yy * board.w]++;
-            nextTile = board.getTile(xx, yy);
+                checkedTiles[xx + yy * level.w]++;
+            nextTile = level.getTile(xx, yy);
             if (nextTile === null)
                 break;
             if (nextTile.id === ID.POINTER) {
                 break;
             }
-            nextTile.addLaser(new Laser(opposite(nextDir), null, this.lasers[0].colour));
+            nextTile.addLaser(new Laser(Direction.opposite(nextDir), null, this.lasers[0].colour));
             if (nextTile.lasers.length > 0) {
                 nextDir = nextTile.lasers[nextTile.lasers.length - 1].exiting;
             }
@@ -502,22 +677,22 @@ var ReceptorTile = (function (_super) {
         }
         else if (clickType(event) === "right") {
             if (GameState.levelEditMode) {
-                if (Game.selectedTile === this.id) {
-                    var xx = getRelativeCoordinates(event, get('gamecanvas')).x % Game.tileSize, yy = getRelativeCoordinates(event, get('gamecanvas')).y % Game.tileSize, index;
-                    if (xx + yy <= Game.tileSize) {
+                if (Game.selectedTileID === this.id) {
+                    var xx = getRelativeCoordinates(event, get('gamecanvas')).x % Tile.size, yy = getRelativeCoordinates(event, get('gamecanvas')).y % Tile.size, index;
+                    if (xx + yy <= Tile.size) {
                         if (xx >= yy) {
-                            index = sub(DIRECTION.NORTH, this.dir);
+                            index = Direction.sub(DIRECTION.NORTH, this.dir);
                         }
                         else {
-                            index = sub(DIRECTION.WEST, this.dir);
+                            index = Direction.sub(DIRECTION.WEST, this.dir);
                         }
                     }
                     else {
                         if (xx >= yy) {
-                            index = sub(DIRECTION.EAST, this.dir);
+                            index = Direction.sub(DIRECTION.EAST, this.dir);
                         }
                         else {
-                            index = sub(DIRECTION.SOUTH, this.dir);
+                            index = Direction.sub(DIRECTION.SOUTH, this.dir);
                         }
                     }
                     if (this.receptors[index] === null) {
@@ -538,8 +713,8 @@ var ReceptorTile = (function (_super) {
                 this.receptors[i].laser = null;
         }
         for (i = 0; i < this.lasers.length; i++) {
-            if (this.receptors[sub(this.lasers[i].entering, this.dir)] !== null) {
-                this.receptors[sub(this.lasers[i].entering, this.dir)].laser = this.lasers[i];
+            if (this.receptors[Direction.sub(this.lasers[i].entering, this.dir)] !== null) {
+                this.receptors[Direction.sub(this.lasers[i].entering, this.dir)].laser = this.lasers[i];
             }
         }
         for (i = 0; i < this.receptors.length; i++) {
@@ -547,17 +722,21 @@ var ReceptorTile = (function (_super) {
                 this.receptors[i].update();
         }
     };
-    ReceptorTile.allReceptorsOn = function (receptors) {
-        for (var r in receptors) {
-            if (receptors[r] && receptors[r].on == false)
+    ReceptorTile.prototype.allReceptorsOn = function () {
+        for (var r in this.receptors) {
+            if (this.receptors[r] && this.receptors[r].on == false)
                 return false;
         }
         return true;
     };
     ReceptorTile.prototype.render = function (context, x, y) {
-        if (ReceptorTile.allReceptorsOn(this.receptors)) {
-            context.fillStyle = "#1d4d12";
-            context.fillRect(x - Game.tileSize / 2, y - Game.tileSize / 2, Game.tileSize, Game.tileSize);
+        if (this.allReceptorsOn()) {
+            context.fillStyle = Colour.GREEN;
+            context.strokeStyle = Colour.GREEN;
+            context.lineJoin = "round";
+            context.lineWidth = 20;
+            context.strokeRect(x - Tile.size / 2 + 10, y - Tile.size / 2 + 10, Tile.size - 20, Tile.size - 20);
+            context.fillRect(x - Tile.size / 2 + 10, y - Tile.size / 2 + 10, Tile.size - 20, Tile.size - 20);
         }
         for (var i = 0; i < this.lasers.length; i++) {
             if (this.lasers[i].exiting !== null)
@@ -573,13 +752,13 @@ var ReceptorTile = (function (_super) {
         var solid = false;
         for (var i = 0; i < this.receptors.length; i++) {
             if (this.receptors[i] !== null) {
-                if (sub(i, this.dir) === laser.entering || sub(i, this.dir) === opposite(laser.entering)) {
+                if (Direction.sub(i, this.dir) === laser.entering || Direction.sub(i, this.dir) === Direction.opposite(laser.entering)) {
                     solid = true;
                 }
             }
         }
         if (solid === false)
-            laser.exiting = opposite(laser.entering);
+            laser.exiting = Direction.opposite(laser.entering);
         _super.prototype.addLaser.call(this, laser);
     };
     ReceptorTile.prototype.removeAllLasers = function () {
@@ -594,61 +773,41 @@ var ReceptorTile = (function (_super) {
     return ReceptorTile;
 })(Tile);
 var Level = (function () {
-    function Level(w, h, levelNum, tiles) {
-        this.w = w;
-        this.h = h;
+    function Level(levelNum, w, h, tiles) {
         this.levelNum = levelNum;
-        if (typeof tiles[0] === "number" || Array.isArray(tiles[0])) {
-            this.tiles = Level.numberArrayToTileArray(w, h, tiles.slice());
+        if (tiles) {
+            this.w = w;
+            this.h = h;
+            this.tiles = tiles.slice();
+            this.checkCompleted();
         }
         else {
-            this.tiles = tiles.slice();
-        }
-    }
-    Level.numberArrayToTileArray = function (w, h, nums) {
-        var tiles = new Array(nums.length);
-        for (var i = 0; i < w * h; i++) {
-            tiles[i] = Level.getNewDefaultTile(nums[i], i % w, Math.floor(i / w));
-            if (tiles[i] === null) {
-                switch (nums[i][0]) {
-                    case ID.BLANK:
-                        console.error("Blank tiles shouldn't be saved using arrays (index: " + i + ")");
-                        tiles[i] = new BlankTile(i % w, Math.floor(i / w));
-                        break;
-                    case ID.MIRROR:
-                        tiles[i] = new MirrorTile(i % w, Math.floor(i / w), nums[i][1]);
-                        break;
-                    case ID.POINTER:
-                        tiles[i] = new PointerTile(i % w, Math.floor(i / w), nums[i][1], nums[i][2], nums[i][3]);
-                        break;
-                    case ID.RECEPTOR:
-                        tiles[i] = new ReceptorTile(i % w, Math.floor(i / w), nums[i][1], nums[i][2]);
-                        break;
-                    default:
-                        console.error("Invalid tile property: " + nums[i] + " at index " + i);
-                        break;
-                }
+            if (this.loadLevelFromMemory() === false) {
+                this.loadDefaultLevel();
             }
         }
-        return tiles;
-    };
-    Level.getNewDefaultTile = function (id, x, y) {
-        switch (id) {
-            case ID.BLANK:
-                return new BlankTile(x, y);
-            case ID.MIRROR:
-                return new MirrorTile(x, y, DIRECTION.NORTH);
-            case ID.POINTER:
-                return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
-            case ID.RECEPTOR:
-                return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
-        }
-        return null;
+        this.update();
+    }
+    Level.prototype.loadDefaultLevel = function () {
+        var lvl = Game.defaultLevels[this.levelNum] || Game.defaultLevels[0];
+        this.w = lvl[0];
+        this.h = lvl[1];
+        this.tiles = Level.anyArrayToTileArray(this.w, this.h, lvl[2]);
+        this.update();
+        this.checkCompleted();
     };
     Level.prototype.clear = function () {
         for (var i = 0; i < this.w * this.h; i++) {
             this.tiles[i] = new BlankTile(i % this.w, Math.floor(i / this.w));
         }
+        this.update();
+        this.checkCompleted();
+    };
+    Level.prototype.getTile = function (x, y) {
+        if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
+            return this.tiles[x + y * this.w];
+        }
+        return null;
     };
     Level.prototype.update = function () {
         for (var i = 0; i < this.tiles.length; i++) {
@@ -663,49 +822,72 @@ var Level = (function () {
                 this.tiles[i].update(this);
         }
     };
-    Level.prototype.getTile = function (x, y) {
-        if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
-            return this.tiles[x + y * this.w];
-        }
-        return null;
-    };
     Level.prototype.render = function () {
         var context = get('gamecanvas').getContext('2d');
-        context.fillStyle = '#0a0a0a';
-        context.fillRect(0, 0, this.w * Game.tileSize, this.h * Game.tileSize);
-        context.strokeStyle = '#444444';
+        context.fillStyle = Colour.GRAY;
+        context.fillRect(0, 0, this.w * Tile.size, this.h * Tile.size);
         for (var i = 0; i < this.w * this.h; i++) {
-            if (Game.debug === true)
-                context.strokeRect((i % this.w) * Game.tileSize, Math.floor(i / this.w) * Game.tileSize, Game.tileSize, Game.tileSize);
-            this.tiles[i].render(context, (i % this.w) * Game.tileSize + Game.tileSize / 2, Math.floor(i / this.w) * Game.tileSize + Game.tileSize / 2);
+            if (Game.debug === true) {
+                context.strokeStyle = '#444';
+                context.lineWidth = 1;
+                context.strokeRect((i % this.w) * Tile.size, Math.floor(i / this.w) * Tile.size, Tile.size, Tile.size);
+            }
+            this.tiles[i].render(context, (i % this.w) * Tile.size + Tile.size / 2, Math.floor(i / this.w) * Tile.size + Tile.size / 2);
         }
     };
     Level.prototype.click = function (event, down) {
-        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Game.tileSize);
-        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Game.tileSize);
+        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Tile.size);
+        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Tile.size);
         this.tiles[y * this.w + x].click(event, down);
-        if (GameState.levelEditMode && clickType(event) === "left") {
-            this.tiles[y * this.w + x] = Level.getNewDefaultTile(Game.selectedTile, x, y);
+        if (GameState.levelEditMode && event.ctrlKey === false) {
+            if (clickType(event) === "left")
+                this.tiles[y * this.w + x] = Level.getNewDefaultTile(Game.selectedTileID, x, y);
+            else if (clickType(event) === "right")
+                this.tiles[y * this.w + x] = Level.getNewDefaultTile(ID.BLANK, x, y);
+        }
+        this.update();
+        this.checkCompleted();
+        if (Game.completedLevels[this.levelNum]) {
+            var str = '<div id="popupContent">' +
+                '<h3>Level complete!</h3> <p>Good job!</p>' +
+                '<div class="popupButton button" id="returnButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); }">Return</div>' +
+                '<div class="popupButton button" id="nextButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); if (' + (this.levelNum + 1) + ' < Game.defaultLevels.length) { Game.sm.enterState(\'game\', ' + (this.levelNum + 1) + '); } Game.clearPopup(); }">Next Level!</div>' +
+                '</div>';
+            Game.setPopup(str);
+        }
+        else {
+            Game.clearPopup();
         }
     };
+    Level.prototype.checkCompleted = function () {
+        for (var i = 0; i < this.tiles.length; i++) {
+            if (this.tiles[i].id === ID.RECEPTOR) {
+                if (this.tiles[i].allReceptorsOn() == false) {
+                    Game.completedLevels[this.levelNum] = false;
+                    return;
+                }
+            }
+        }
+        Game.completedLevels[this.levelNum] = true;
+    };
     Level.prototype.hover = function (event, into) {
-        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Game.tileSize);
-        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Game.tileSize);
+        var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Tile.size);
+        var y = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).y / Tile.size);
         this.tiles[y * this.w + x].hover(into);
     };
-    Level.loadLevelFromMemory = function (levelNum) {
+    Level.prototype.loadLevelFromMemory = function () {
         var data, storage, tiles, i, w, h;
         if (typeof (Storage) === "undefined") {
             alert("Failed to load data. You must update your browser if you want to play this game.");
-            return null;
+            return false;
         }
-        storage = window.localStorage.getItem(Game.saveLocation + ' lvl: ' + levelNum);
+        storage = window.localStorage.getItem(Game.saveLocation + ' lvl: ' + this.levelNum);
         if (storage !== null)
             data = decodeURI(storage).split('|').filter(function (n) {
                 return n !== '';
             });
         if (data === undefined) {
-            return null;
+            return false;
         }
         w = parseInt(data[1].split(',')[0]);
         h = parseInt(data[1].split(',')[1]);
@@ -730,9 +912,20 @@ var Level = (function () {
                     break;
             }
         }
-        return new Level(w, h, levelNum, tiles);
+        this.w = w;
+        this.h = h;
+        this.tiles = tiles;
+        return true;
     };
-    Level.prototype.saveLevelString = function () {
+    Level.prototype.removeFromMemory = function () {
+        if (typeof (Storage) === "undefined") {
+            return;
+        }
+        if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + this.levelNum) !== null)
+            window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + this.levelNum);
+        this.loadDefaultLevel();
+    };
+    Level.prototype.saveToMemory = function () {
         var str = '', i, j, tile, receptors;
         if (typeof (Storage) === "undefined") {
             console.error("Failed to save data. Please update your browser.");
@@ -763,7 +956,7 @@ var Level = (function () {
         }
         window.localStorage.setItem(Game.saveLocation + ' lvl: ' + this.levelNum, encodeURI(str));
     };
-    Level.prototype.saveLevelArray = function () {
+    Level.prototype.getLevelString = function () {
         var i, j, tile, receptors, lvl = new Array(3);
         lvl[0] = this.w;
         lvl[1] = this.h;
@@ -787,12 +980,12 @@ var Level = (function () {
                         lvl[2][i] = [ID.POINTER, tile.dir, getBoolShorthand(tile.on), tile.colour];
                     break;
                 case ID.RECEPTOR:
-                    receptors = 'XXXX';
+                    receptors = "XXXX";
                     for (j = 0; j < 4; j++) {
                         if (tile.receptors[j] !== null)
                             receptors = receptors.substring(0, j) + getColourShorthand(tile.receptors[j].colour) + receptors.substring(j + 1);
                     }
-                    lvl[2][i] = [ID.RECEPTOR, tile.dir, receptors];
+                    lvl[2][i] = [ID.RECEPTOR, tile.dir, "'" + receptors + "'"];
                     break;
             }
         }
@@ -807,251 +1000,78 @@ var Level = (function () {
         str += "]]";
         return str;
     };
-    Level.prototype.copy = function () {
-        return new Level(this.w, this.h, this.levelNum, this.tiles);
-    };
-    return Level;
-})();
-var StateManager = (function () {
-    function StateManager() {
-        this.states = [];
-        this.states.push(new MainMenuState(this));
-    }
-    StateManager.prototype.update = function () {
-        if (this.states.length > 0) {
-            this.currentState().update();
+    Level.anyArrayToTileArray = function (w, h, arr) {
+        var tiles = new Array(arr.length);
+        for (var i = 0; i < w * h; i++) {
+            tiles[i] = Level.getNewDefaultTile(arr[i], i % w, Math.floor(i / w));
+            if (tiles[i] === null) {
+                switch (arr[i][0]) {
+                    case ID.BLANK:
+                        console.error("Blank tiles shouldn't be saved using arrays (index: " + i + ")");
+                        tiles[i] = new BlankTile(i % w, Math.floor(i / w));
+                        break;
+                    case ID.MIRROR:
+                        tiles[i] = new MirrorTile(i % w, Math.floor(i / w), arr[i][1]);
+                        break;
+                    case ID.POINTER:
+                        tiles[i] = new PointerTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2], arr[i][3]);
+                        break;
+                    case ID.RECEPTOR:
+                        tiles[i] = new ReceptorTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2]);
+                        break;
+                    default:
+                        console.error("Invalid tile property: " + arr[i] + " at index " + i);
+                        break;
+                }
+            }
         }
+        return tiles;
     };
-    StateManager.prototype.render = function () {
-        if (this.states.length > 0) {
-            this.currentState().render();
-        }
-    };
-    StateManager.prototype.enterState = function (state, levelNum) {
-        this.currentState().hide();
-        if (state === "game")
-            this.states.push(this.getState(state, levelNum || 0));
-        else
-            this.states.push(this.getState(state));
-    };
-    StateManager.prototype.getState = function (state, levelNum) {
-        switch (state) {
-            case "mainmenu":
-                return new MainMenuState(this);
-                break;
-            case "about":
-                return new AboutState(this);
-                break;
-            case "levelselect":
-                return new LevelSelectState(this);
-                break;
-            case "game":
-                return new GameState(this, levelNum);
-                break;
+    Level.getNewDefaultTile = function (id, x, y) {
+        switch (id) {
+            case ID.BLANK:
+                return new BlankTile(x, y);
+            case ID.MIRROR:
+                return new MirrorTile(x, y, DIRECTION.NORTH);
+            case ID.POINTER:
+                return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
+            case ID.RECEPTOR:
+                return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
         }
         return null;
     };
-    StateManager.prototype.enterPreviousState = function () {
-        if (this.states.length > 1) {
-            this.currentState().destroy();
-            this.states.pop();
-            this.currentState().restore();
-            return true;
-        }
-        return false;
+    Level.prototype.copy = function () {
+        return new Level(this.levelNum, this.w, this.h, this.tiles);
     };
-    StateManager.prototype.currentState = function () {
-        return this.states[this.states.length - 1];
-    };
-    return StateManager;
+    return Level;
 })();
-var Game = (function () {
-    function Game() {
+var Colour = (function () {
+    function Colour() {
     }
-    Game.init = function () {
-        document.title = "Mirrors V" + Game.version;
-        get('versionNumber').innerHTML = '<a href="https://github.com/ajweeks/mirrors-ts" target="_blank" style="color: inherit; text-decoration: none;">' + "V." + Game.version + '</a>';
-        Game.images[IMAGE.BLANK] = new Image();
-        Game.images[IMAGE.BLANK].src = "res/blank.png";
-        Game.images[IMAGE.BLANK].alt = "blank";
-        Game.images[IMAGE.MIRROR] = new Image();
-        Game.images[IMAGE.MIRROR].src = "res/mirror.png";
-        Game.images[IMAGE.MIRROR].alt = "mirror";
-        Game.images[IMAGE.POINTER] = new Image();
-        Game.images[IMAGE.POINTER].src = "res/pointer.png";
-        Game.images[IMAGE.POINTER].alt = "pointer";
-        Game.images[IMAGE.RECEPTOR] = [];
-        Game.images[IMAGE.RECEPTOR][COLOUR.RED] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.RED].src = "res/receptor_red.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.RED].alt = "receptor";
-        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].src = "res/receptor_green.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.GREEN].alt = "receptor";
-        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].src = "res/receptor_blue.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.BLUE].alt = "receptor";
-        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE] = new Image();
-        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].src = "res/receptor_white.png";
-        Game.images[IMAGE.RECEPTOR][COLOUR.WHITE].alt = "receptor";
-        Game.images[IMAGE.LASER] = [];
-        Game.images[IMAGE.LASER][COLOUR.RED] = new Image();
-        Game.images[IMAGE.LASER][COLOUR.RED].src = "res/laser_red.png";
-        Game.images[IMAGE.LASER][COLOUR.RED].alt = "red laser";
-        Game.images[IMAGE.LASER][COLOUR.GREEN] = new Image();
-        Game.images[IMAGE.LASER][COLOUR.GREEN].src = "res/laser_green.png";
-        Game.images[IMAGE.LASER][COLOUR.GREEN].alt = "green laser";
-        Game.images[IMAGE.LASER][COLOUR.BLUE] = new Image();
-        Game.images[IMAGE.LASER][COLOUR.BLUE].src = "res/laser_blue.png";
-        Game.images[IMAGE.LASER][COLOUR.BLUE].alt = "blue laser";
-        Game.stats = Stats();
-        Game.stats.setMode(0);
-        Game.stats.domElement.style.position = 'absolute';
-        Game.stats.domElement.style.left = '0px';
-        Game.stats.domElement.style.top = '0px';
-        document.body.appendChild(Game.stats.domElement);
-        Game.sm = new StateManager();
-        Game.completedLevels = new Array(Game.defaultLevels.length);
-        Game.defaultPrefs();
-    };
-    Game.renderImage = function (context, x, y, image, dir, size) {
-        context.save();
-        context.translate(x, y);
-        context.rotate(dir * 90 * (Math.PI / 180));
-        try {
-            context.drawImage(image, -size / 2, -size / 2);
+    Colour.nextColor = function (colour, useWhite) {
+        switch (colour) {
+            case COLOUR.RED:
+                return COLOUR.GREEN;
+            case COLOUR.GREEN:
+                return COLOUR.BLUE;
+            case COLOUR.BLUE:
+                if (useWhite)
+                    return COLOUR.WHITE;
+                return COLOUR.RED;
+            case COLOUR.WHITE:
+                return COLOUR.RED;
         }
-        catch (e) {
-            throw new Error(e.message);
-        }
-        context.restore();
+        return COLOUR.RED;
     };
-    Game.defaultPrefs = function () {
-        setDebug(Game.releaseStage === Game.releaseStages.DEVELOPMENT);
-        setLevelEditMode(false);
-        Game.preferences.warn = !Game.debug;
-    };
-    Game.update = function () {
-        Game.ticks += 1;
-        if (Game.keysdown[Game.KEYBOARD.ESC]) {
-            this.sm.enterPreviousState();
-        }
-        else if (Game.keysdown[Game.KEYBOARD.ZERO]) {
-            toggleLevelEditMode();
-        }
-        else if (Game.keysdown[Game.KEYBOARD.NINE]) {
-            toggleDebug();
-        }
-        Game.sm.update();
-        for (var i = 0; i < Game.keysdown.length; i++) {
-            Game.keysdown[i] = false;
-        }
-    };
-    Game.render = function () {
-        Game.sm.render();
-    };
-    Game.loop = function () {
-        Game.stats.begin();
-        Game.update();
-        if (document.hasFocus() || Game.ticks % 5 === 0) {
-            Game.render();
-        }
-        Game.stats.end();
-        window.setTimeout(Game.loop, 1000 / Game.fps);
-    };
-    Game.version = 0.041;
-    Game.releaseStages = { DEVELOPMENT: "development", PRODUCTION: "production" };
-    Game.releaseStage = Game.releaseStages.DEVELOPMENT;
-    Game.images = [];
-    Game.debug = true;
-    Game.preferences = { 'warn': Game.debug };
-    Game.tileSize = 64;
-    Game.selectedTile = ID.BLANK;
-    Game.saveLocation = "Mirrors";
-    Game.defaultLevels = [
-        [10, 8,
-            [1, [1, 1], 0, 1, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 1]],
-        [10, 8,
-            [[2, 3, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 2,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
-    ];
-    Game.keysdown = [];
-    Game.offset = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-    Game.ticks = 0;
-    Game.fps = 60;
-    Game.lvlselectButtonSpeed = 6;
-    Game.lvlselectButtonDirection = 0;
-    Game.KEYBOARD = {
-        BACKSPACE: 8,
-        TAB: 9,
-        RETURN: 13,
-        ESC: 27,
-        SPACE: 32,
-        PAGEUP: 33,
-        PAGEDOWN: 34,
-        END: 35,
-        HOME: 36,
-        LEFT: 37,
-        UP: 38,
-        RIGHT: 39,
-        DOWN: 40,
-        INSERT: 45,
-        DELETE: 46,
-        ZERO: 48,
-        ONE: 49,
-        TWO: 50,
-        THREE: 51,
-        FOUR: 52,
-        FIVE: 53,
-        SIX: 54,
-        SEVEN: 55,
-        EIGHT: 56,
-        NINE: 57,
-        A: 65,
-        B: 66,
-        C: 67,
-        D: 68,
-        E: 69,
-        F: 70,
-        G: 71,
-        H: 72,
-        I: 73,
-        J: 74,
-        K: 75,
-        L: 76,
-        M: 77,
-        N: 78,
-        O: 79,
-        P: 80,
-        Q: 81,
-        R: 82,
-        S: 83,
-        T: 84,
-        U: 85,
-        V: 86,
-        W: 87,
-        X: 88,
-        Y: 89,
-        Z: 90,
-        TILDE: 192,
-        SHIFT: 999
-    };
-    return Game;
+    Colour.PURPLE = '#3B154B';
+    Colour.GREEN = '#004500';
+    Colour.GRAY = '#0A0A0A';
+    Colour.DARK_GRAY = '#121212';
+    Colour.LIGHT_GRAY = '#555';
+    return Colour;
 })();
 function getBoolShorthand(bool) {
-    return bool === true ? 1 : 0;
+    return bool === true || bool === 1 || bool === "1" ? 1 : 0;
 }
 function getColourShorthand(colour) {
     switch (colour) {
@@ -1094,7 +1114,7 @@ function hexToDecimal(hex) {
     return n;
 }
 function parseBool(value) {
-    return value === "1" || value.toLowerCase() === "true";
+    return value === "1" || value === 1 || value === true;
 }
 function assert(condition, message) {
     if (!condition) {
@@ -1109,14 +1129,18 @@ function selectionTileClick(event, down, id) {
     if (clickType(event) !== 'left')
         return;
     if (id === 888) {
-        Game.sm.currentState().level.saveLevelString();
-        console.log(Game.sm.currentState().level.saveLevelArray());
+        prompt("This is the level code: copy and paste it somewhere you'll remember", Game.sm.currentState().level.getLevelString());
     }
     else if (id === 887) {
         Game.sm.currentState().level.clear();
     }
+    else if (id === 886) {
+        var msg = "Hello curious player! You are currently in Mirror's level editor. Here you can create your own levels! The print button will export the save as a string." +
+            " Level loading has not yet been implemented, but it might be soon. \n\nTip: hold crtl to edit tiles while still in lvl edit mode";
+        alert(msg);
+    }
     else if (down) {
-        Game.selectedTile = id;
+        Game.selectedTileID = id;
     }
 }
 function toggleLevelEditMode() {
@@ -1126,7 +1150,7 @@ function setLevelEditMode(levelEditMode) {
     GameState.levelEditMode = levelEditMode;
     if (GameState.levelEditMode) {
         setDebug(true);
-        get('lvlEditInfo').style.backgroundColor = "#134304";
+        get('lvlEditInfo').style.backgroundColor = Colour.GREEN;
         if (Game.sm.currentState().id === STATE.GAME) {
             get('lvledittilesarea').style.display = "block";
         }
@@ -1149,70 +1173,75 @@ function setDebug(debug) {
         Game.stats.domElement.style.display = "none";
     if (Game.debug) {
         get('infoarea').style.display = "block";
-        get('debugInfo').style.backgroundColor = "#134304";
+        get('debugInfo').style.backgroundColor = Colour.GREEN;
     }
     else {
         get('infoarea').style.display = "none";
         get('debugInfo').style.backgroundColor = "initial";
     }
 }
-function clockwise(dir) {
-    dir += 1;
-    if (dir > 3) {
-        dir = 0;
+var Direction = (function () {
+    function Direction() {
     }
-    return dir;
-}
-function anticlockwise(dir) {
-    dir -= 1;
-    if (dir < 0) {
-        dir = 3;
-    }
-    return dir;
-}
-function add(dir1, dir2) {
-    return (dir1 + dir2) % 4;
-}
-function sub(dir1, dir2) {
-    var result = dir1 - dir2;
-    if (result < 0) {
-        dir1 = (4 + result) % 4;
-    }
-    else {
-        dir1 = result;
-    }
-    return dir1;
-}
-function opposite(dir) {
-    if (dir === DIRECTION.NORTH) {
-        return DIRECTION.SOUTH;
-    }
-    else if (dir === DIRECTION.EAST) {
-        return DIRECTION.WEST;
-    }
-    else if (dir === DIRECTION.SOUTH) {
-        return DIRECTION.NORTH;
-    }
-    else if (dir === DIRECTION.WEST) {
-        return DIRECTION.EAST;
-    }
-    else {
-        console.error("Invalid direction!! " + dir);
-    }
-    return 0;
-}
+    Direction.clockwise = function (dir) {
+        dir += 1;
+        if (dir > 3) {
+            dir = 0;
+        }
+        return dir;
+    };
+    Direction.anticlockwise = function (dir) {
+        dir -= 1;
+        if (dir < 0) {
+            dir = 3;
+        }
+        return dir;
+    };
+    Direction.add = function (dir1, dir2) {
+        return (dir1 + dir2) % 4;
+    };
+    Direction.sub = function (dir1, dir2) {
+        var result = dir1 - dir2;
+        if (result < 0) {
+            dir1 = (4 + result) % 4;
+        }
+        else {
+            dir1 = result;
+        }
+        return dir1;
+    };
+    Direction.opposite = function (dir) {
+        if (dir === DIRECTION.NORTH) {
+            return DIRECTION.SOUTH;
+        }
+        else if (dir === DIRECTION.EAST) {
+            return DIRECTION.WEST;
+        }
+        else if (dir === DIRECTION.SOUTH) {
+            return DIRECTION.NORTH;
+        }
+        else if (dir === DIRECTION.WEST) {
+            return DIRECTION.EAST;
+        }
+        else {
+            console.error("Invalid direction!! " + dir);
+        }
+        return 0;
+    };
+    return Direction;
+})();
 function keyPressed(event, down) {
     if (Game.keysdown) {
         var keycode = event.keyCode ? event.keyCode : event.which;
         Game.keysdown[keycode] = down;
         if (Game.keysdown[Game.KEYBOARD.ONE])
-            Game.selectedTile = 0;
+            Game.selectedTileID = 0;
         if (Game.keysdown[Game.KEYBOARD.TWO])
-            Game.selectedTile = 1;
+            Game.selectedTileID = 1;
         if (Game.keysdown[Game.KEYBOARD.THREE])
-            Game.selectedTile = 2;
+            Game.selectedTileID = 2;
         if (Game.keysdown[Game.KEYBOARD.FOUR])
-            Game.selectedTile = 3;
+            Game.selectedTileID = 3;
     }
 }
 window.onkeydown = function (event) {
@@ -1251,14 +1280,6 @@ function getAbsolutePosition(element) {
     }
     return r;
 }
-window.onbeforeunload = function (event) {
-    if (Game.debug === false) {
-        if (typeof event == 'undefined')
-            event = window.event;
-        if (event)
-            event.returnValue = 'Are you sure you want to close Mirrors?';
-    }
-};
 window.onload = function () {
     Game.init();
     Game.loop();
