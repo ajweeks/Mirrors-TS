@@ -31,7 +31,8 @@ var STATE;
     STATE[STATE["MAIN_MENU"] = 0] = "MAIN_MENU";
     STATE[STATE["GAME"] = 1] = "GAME";
     STATE[STATE["ABOUT"] = 2] = "ABOUT";
-    STATE[STATE["LEVEL_SELECT"] = 3] = "LEVEL_SELECT";
+    STATE[STATE["OPTION"] = 3] = "OPTION";
+    STATE[STATE["LEVEL_SELECT"] = 4] = "LEVEL_SELECT";
 })(STATE || (STATE = {}));
 var IMAGE;
 (function (IMAGE) {
@@ -118,8 +119,8 @@ var Game = (function () {
         Game.preferences.warn = !Game.debug;
     };
     Game.setPopup = function (str) {
-        get('darken').style.display = "block";
-        get('popup').style.display = "block";
+        get('darken').style.display = "initial";
+        get('popup').style.display = "initial";
         get('popup').innerHTML = str;
         Game.popupUp = true;
     };
@@ -132,7 +133,12 @@ var Game = (function () {
     Game.update = function () {
         Game.ticks += 1;
         if (Game.keysdown[Game.KEYBOARD.ESC]) {
-            this.sm.enterPreviousState();
+            if (Game.popupUp === true) {
+                Game.clearPopup();
+            }
+            else {
+                this.sm.enterPreviousState();
+            }
         }
         else if (Game.keysdown[Game.KEYBOARD.ZERO]) {
             toggleLevelEditMode();
@@ -231,6 +237,26 @@ var AboutState = (function (_super) {
     };
     return AboutState;
 })(BasicState);
+var OptionState = (function (_super) {
+    __extends(OptionState, _super);
+    function OptionState(sm) {
+        _super.call(this, STATE.OPTION, sm);
+        get('optionstate').style.display = "block";
+    }
+    OptionState.prototype.setResetLevelPopup = function () {
+        Game.setPopup('<h3>Clear level data</h3>' +
+            '<p>Are you sure? This will erase all of your saved data!</p>' +
+            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
+            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>');
+    };
+    OptionState.prototype.restore = function () {
+        get('optionstate').style.display = "block";
+    };
+    OptionState.prototype.destroy = function () {
+        get('optionstate').style.display = "none";
+    };
+    return OptionState;
+})(BasicState);
 var LevelSelectState = (function (_super) {
     __extends(LevelSelectState, _super);
     function LevelSelectState(sm) {
@@ -261,6 +287,18 @@ var LevelSelectState = (function (_super) {
         get('levelselectstate').innerHTML = str;
         LevelSelectState.updateButtonBgs();
     }
+    LevelSelectState.updateButtonBgs = function () {
+        if (get('levelselectstate').innerHTML === '')
+            return;
+        for (var i = 0; i < Game.defaultLevels.length; i++) {
+            if (Game.completedLevels[i] === true) {
+                get(i + 'lvlselectButton').style.backgroundColor = Colour.GREEN;
+            }
+            else {
+                get(i + 'lvlselectButton').style.backgroundColor = null;
+            }
+        }
+    };
     LevelSelectState.prototype.update = function () {
         this.offset += Game.lvlselectButtonSpeed * Game.lvlselectButtonDirection;
         if (this.offset >= 150) {
@@ -276,17 +314,6 @@ var LevelSelectState = (function (_super) {
             get('backarrow').style.visibility = "visible";
         }
         get('levelselectstate').style.marginLeft = this.offset + 'px';
-    };
-    LevelSelectState.updateButtonBgs = function () {
-        var i;
-        for (i = 0; i < Game.defaultLevels.length; i++) {
-            if (Game.completedLevels[i] === true) {
-                get(i + 'lvlselectButton').style.backgroundColor = Colour.GREEN;
-            }
-            else {
-                get(i + 'lvlselectButton').style.backgroundColor = null;
-            }
-        }
     };
     LevelSelectState.prototype.hide = function () {
         get('levelselectstate').style.display = "none";
@@ -404,22 +431,20 @@ var StateManager = (function () {
         switch (state) {
             case "mainmenu":
                 return new MainMenuState(this);
-                break;
             case "about":
                 return new AboutState(this);
-                break;
             case "levelselect":
                 return new LevelSelectState(this);
-                break;
             case "game":
                 return new GameState(this, levelNum);
-                break;
+            case "option":
+                return new OptionState(this);
         }
         return null;
     };
     StateManager.prototype.enterPreviousState = function () {
-        if (this.states[this.states.length - 1].id === STATE.GAME)
-            this.states[this.states.length - 1].level.checkCompleted();
+        // TODO figure out why this line was here... pretty sure it just messes other things up now..
+        // if (this.states[this.states.length - 1].id === STATE.GAME) (<GameState>this.states[this.states.length - 1]).level.checkCompleted();
         if (this.states.length > 1) {
             this.currentState().destroy();
             this.states.pop();
@@ -779,29 +804,26 @@ var Level = (function () {
             this.w = w;
             this.h = h;
             this.tiles = tiles.slice();
-            this.checkCompleted();
         }
         else {
-            if (this.loadLevelFromMemory() === false) {
+            if (Game.completedLevels[this.levelNum] ||
+                this.loadLevelFromMemory() === false) {
                 this.loadDefaultLevel();
             }
         }
         this.update();
     }
     Level.prototype.loadDefaultLevel = function () {
-        var lvl = Game.defaultLevels[this.levelNum] || Game.defaultLevels[0];
+        var lvl = Game.defaultLevels[this.levelNum];
         this.w = lvl[0];
         this.h = lvl[1];
         this.tiles = Level.anyArrayToTileArray(this.w, this.h, lvl[2]);
-        this.update();
-        this.checkCompleted();
     };
     Level.prototype.clear = function () {
         for (var i = 0; i < this.w * this.h; i++) {
             this.tiles[i] = new BlankTile(i % this.w, Math.floor(i / this.w));
         }
         this.update();
-        this.checkCompleted();
     };
     Level.prototype.getTile = function (x, y) {
         if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
@@ -821,6 +843,7 @@ var Level = (function () {
             if (this.tiles[i].id !== ID.POINTER)
                 this.tiles[i].update(this);
         }
+        this.checkCompleted();
     };
     Level.prototype.render = function () {
         var context = get('gamecanvas').getContext('2d');
@@ -846,29 +869,31 @@ var Level = (function () {
                 this.tiles[y * this.w + x] = Level.getNewDefaultTile(ID.BLANK, x, y);
         }
         this.update();
-        this.checkCompleted();
-        if (Game.completedLevels[this.levelNum]) {
+    };
+    Level.prototype.checkCompleted = function () {
+        var on = true;
+        for (var i = 0; i < this.tiles.length; i++) {
+            if (this.tiles[i].id === ID.RECEPTOR) {
+                if (this.tiles[i].allReceptorsOn() == false) {
+                    on = false;
+                    break;
+                }
+            }
+        }
+        if (on) {
+            Game.completedLevels[this.levelNum] = true;
+        }
+        if (on && Game.popupUp === false) {
             var str = '<div id="popupContent">' +
                 '<h3>Level complete!</h3> <p>Good job!</p>' +
                 '<div class="popupButton button" id="returnButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); }">Return</div>' +
-                '<div class="popupButton button" id="nextButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); if (' + (this.levelNum + 1) + ' < Game.defaultLevels.length) { Game.sm.enterState(\'game\', ' + (this.levelNum + 1) + '); } Game.clearPopup(); }">Next Level!</div>' +
+                '<div class="popupButton button" id="nextButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); if (' + (this.levelNum + 1) + ' < Game.defaultLevels.length) { Game.sm.enterState(\'game\', ' + (this.levelNum + 1) + '); } }">Next Level!</div>' +
                 '</div>';
             Game.setPopup(str);
         }
         else {
             Game.clearPopup();
         }
-    };
-    Level.prototype.checkCompleted = function () {
-        for (var i = 0; i < this.tiles.length; i++) {
-            if (this.tiles[i].id === ID.RECEPTOR) {
-                if (this.tiles[i].allReceptorsOn() == false) {
-                    Game.completedLevels[this.levelNum] = false;
-                    return;
-                }
-            }
-        }
-        Game.completedLevels[this.levelNum] = true;
     };
     Level.prototype.hover = function (event, into) {
         var x = Math.floor(getRelativeCoordinates(event, get('gamecanvas')).x / Tile.size);
@@ -917,13 +942,25 @@ var Level = (function () {
         this.tiles = tiles;
         return true;
     };
-    Level.prototype.removeFromMemory = function () {
+    Level.resetAll = function () {
+        for (var i = 0; i < Game.defaultLevels.length; i++) {
+            Level.removeFromMemory(i);
+        }
+        LevelSelectState.updateButtonBgs();
+    };
+    Level.prototype.reset = function () {
+        Level.removeFromMemory(this.levelNum);
+        this.loadDefaultLevel();
+        this.update();
+    };
+    Level.removeFromMemory = function (levelNum) {
         if (typeof (Storage) === "undefined") {
             return;
         }
-        if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + this.levelNum) !== null)
-            window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + this.levelNum);
-        this.loadDefaultLevel();
+        if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + levelNum) !== null) {
+            window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + levelNum);
+            Game.completedLevels[levelNum] = false;
+        }
     };
     Level.prototype.saveToMemory = function () {
         var str = '', i, j, tile, receptors;

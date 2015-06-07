@@ -73,7 +73,13 @@
             cursor: default;
         }
         #mainmenubtns {
-            margin: 10% auto;
+            margin: 7% auto;
+        }
+
+        #mainmenubtns div {
+          width: 180px;
+          height: 80px;
+          line-height: 80px;
         }
 
         .button {
@@ -255,7 +261,7 @@
             text-shadow: 0 0 3px #BFFFBF;
         }
 
-        #aboutinfo {
+        #optionsinfo, #aboutinfo {
             position: absolute;
             left: 50%;
             margin-left: -20%;
@@ -308,20 +314,27 @@
     <h2>Mirrors</h2>
 
     <div id="mainmenubtns">
-        <div class="button" id="playButton" style="width: 180px; height: 80px; line-height: 80px;" onclick="Game.sm.enterState('levelselect');">Play</div>
-        <div class="button" id="aboutButton" style="width: 180px; height: 80px; line-height: 80px;" onclick="Game.sm.enterState('about');">About</div>
+        <div class="button" id="playButton" onclick="Game.sm.enterState('levelselect');">Play</div>
+        <div class="button" id="optionsButton" onclick="Game.sm.enterState('option');">Options</div>
+        <div class="button" id="aboutButton" onclick="Game.sm.enterState('about');">About</div>
     </div>
 
     <div id="aboutstate" style="display: none">
         <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: 240px;">Back</div>
         <div id="aboutinfo">
-            <p>Mirrors was developed entirely by AJ Weeks in early 2015 using pure JavaScript. The first iteration of the project was written in Java in late 2014.
-                You can read more about it and download a copy at <a href="https://liqwidice.wordpress.com/portfolio/mirrors" target="_blank">liqwidice.wordpress.com/portfolio/mirrors</a></p>
-            <p>The unobfuscated source code can be found at: <a href="https://github.com/ajweeks/mirrors-js" target="_blank">github.com/ajweeks/mirrors-js</a></p>
-            <p>You can read more about the game here: <a href="https://liqwidice.wordpress.com/portfolio/mirrors-js" target="_blank">liqwidice.wordpress.com/portfolio/mirrors-js</a></p>
-            <p>My personal blog can be found at: <a href="https://ajweeks.wordpress.com" target="_blank">ajweeks.wordpress.com</a></p>
-            <p>The best way to contact me is probably on Twitter <a href="https://twitter.com/liqwidice" target="_blank">@liqwidice</a>.  Feel free to shoot any comments or criticisms my way over there.</p>
-            <p>For serious business inquiries, you can email me at <a href="mailto:ajweeks@shaw.ca">ajweeks@shaw.ca</a></p>
+            <!-- <p>You can read more about the game here: <a href="https://liqwidice.wordpress.com/portfolio/mirrors-js" target="_blank">liqwidice.wordpress.com/portfolio/mirrors-js</a></p> -->
+            <!-- <p>My personal blog can be found at: <a href="https://ajweeks.wordpress.com" target="_blank">ajweeks.wordpress.com</a></p> -->
+            <p>The unobfuscated source code can be found at: <a href="https://github.com/ajweeks/mirrors-ts" target="_blank">github.com/ajweeks/mirrors-ts</a></p>
+            <p>Mirrors was developed entirely by AJ Weeks in early 2015 using TypeScript. The first iteration of the project was written in Java in late 2014.</p>
+            <p>If you have any comments or criticisms send me a mesage <a href="https://twitter.com/liqwidice" target="_blank">@liqwidice</a></p>
+            <!-- <p>For serious business inquiries, you can email me at <a href="mailto:ajweeks@shaw.ca">ajweeks@shaw.ca</a></p> -->
+        </div>
+    </div>
+
+    <div id="optionstate" style="display: none">
+        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: 240px;">Back</div>
+        <div id="optionsinfo">
+            <div class="button" style="width: 180px; margin-top: 80px;" onclick="if (clickType(event)==='left') { Game.sm.currentState().setResetLevelPopup(); }">Reset All Levels</div>
         </div>
     </div>
 
@@ -329,7 +342,7 @@
 
     <div id="gameboard" oncontextmenu="return false;" style="display: none">
         <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: -430px; margin-top: -40px;">Back</div>
-        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.currentState().level.removeFromMemory();" style="margin-left: -430px; margin-top: 0px;">Reset</div>
+        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.currentState().level.reset();" style="margin-left: -430px; margin-top: 0px;">Reset</div>
         <canvas id="gamecanvas" onmousedown="boardClick(event, true)" ></canvas>
     </div>
 
@@ -339,12 +352,15 @@
     </div>
 
     <div id="darken"></div>
-    <div id="popup"></div>
+
+    <div id="popupHolder">
+      <div id="popup"></div>
+    </div>
 
     <div id="versionNumber"></div>
 
     <div id="infoarea" style="display: none;">
-        <div id="shortcuts"><!-- having a static width isn't ideal, but otherwise the width will change when the longest <li> element is being hovered over and being bolded -->
+        <div id="shortcuts">
             <b>Shortcuts:</b>
             <ul>
                 <li id="debugInfo" onmousedown="toggleDebug();">Debug - 9</li>

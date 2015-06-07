@@ -13,7 +13,7 @@ function get(what: string): HTMLElement {
 
 enum ID { BLANK = 0, MIRROR = 1, POINTER = 2, RECEPTOR = 3 }
 enum COLOUR { RED, GREEN, BLUE, WHITE }
-enum STATE { MAIN_MENU, GAME, ABOUT, LEVEL_SELECT }
+enum STATE { MAIN_MENU, GAME, ABOUT, OPTION, LEVEL_SELECT }
 enum IMAGE { BLANK = 0, MIRROR = 1, POINTER = 2, RECEPTOR = 3, LASER = 4 }
 enum DIRECTION { NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3, NW = 0, NE = 1, SE = 2, SW = 3 }
 
@@ -162,8 +162,8 @@ class Game {
     // TODO LATER add a tutorial overlay? controls at least?
 
     static setPopup(str: string): void {
-        get('darken').style.display = "block";
-        get('popup').style.display = "block";
+        get('darken').style.display = "initial";
+        get('popup').style.display = "initial";
         get('popup').innerHTML = str;
         Game.popupUp = true;
     }
@@ -179,7 +179,11 @@ class Game {
         Game.ticks += 1;
 
         if (Game.keysdown[Game.KEYBOARD.ESC]) {
-            this.sm.enterPreviousState();
+            if (Game.popupUp === true) {
+                Game.clearPopup();
+            } else {
+                this.sm.enterPreviousState();
+            }
         } else if (Game.keysdown[Game.KEYBOARD.ZERO]) {
             toggleLevelEditMode();
         } else if (Game.keysdown[Game.KEYBOARD.NINE]) {
@@ -276,6 +280,29 @@ class AboutState extends BasicState {
     }
 }
 
+class OptionState extends BasicState {
+    constructor(sm: StateManager) {
+        super(STATE.OPTION, sm);
+
+        get('optionstate').style.display = "block";
+    }
+
+    setResetLevelPopup():void {
+      Game.setPopup('<h3>Clear level data</h3>' +
+      '<p>Are you sure? This will erase all of your saved data!</p>' +
+      '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
+      '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>');
+    }
+
+    restore() {
+        get('optionstate').style.display = "block";
+    }
+
+    destroy() {
+        get('optionstate').style.display = "none";
+    }
+}
+
 class LevelSelectState extends BasicState {
     height: number;
     numOfLevels: number;
@@ -311,9 +338,20 @@ class LevelSelectState extends BasicState {
         get('levelselectstate').style.marginTop = '80px';
         get('levelselectstate').innerHTML = str;
 
-        // TODO add reset all button
-
         LevelSelectState.updateButtonBgs();
+
+        // XXX TODO Save completed levels in local storage
+    }
+
+    static updateButtonBgs() {
+        if (get('levelselectstate').innerHTML === '') return; // The level select buttons haven't been generated yet
+        for (var i = 0; i < Game.defaultLevels.length; i++) {
+            if (Game.completedLevels[i] === true) {
+                get(i + 'lvlselectButton').style.backgroundColor = Colour.GREEN;
+            } else {
+                get(i + 'lvlselectButton').style.backgroundColor = null;
+            }
+        }
     }
 
     update() {
@@ -330,17 +368,6 @@ class LevelSelectState extends BasicState {
         }
 
         get('levelselectstate').style.marginLeft = this.offset + 'px';
-    }
-
-    static updateButtonBgs() {
-        var i;
-        for (i = 0; i < Game.defaultLevels.length; i++) {
-            if (Game.completedLevels[i] === true) {
-                get(i + 'lvlselectButton').style.backgroundColor = Colour.GREEN;
-            } else {
-                get(i + 'lvlselectButton').style.backgroundColor = null;
-            }
-        }
     }
 
     hide() {
@@ -484,22 +511,22 @@ class StateManager {
         switch (state) {
             case "mainmenu":
                 return new MainMenuState(this);
-                break;
             case "about":
                 return new AboutState(this);
-                break;
             case "levelselect":
                 return new LevelSelectState(this);
-                break;
             case "game":
                 return new GameState(this, levelNum);
-                break;
+            case "option":
+                return new OptionState(this);
         }
         return null;
     }
 
     enterPreviousState(): boolean {
-        if (this.states[this.states.length - 1].id === STATE.GAME) (<GameState>this.states[this.states.length - 1]).level.checkCompleted();
+        // TODO figure out why this line was here... pretty sure it just messes other things up now..
+        // if (this.states[this.states.length - 1].id === STATE.GAME) (<GameState>this.states[this.states.length - 1]).level.checkCompleted();
+
         if (this.states.length > 1) { // if there is only one state, we can't go back any further
             this.currentState().destroy();
             this.states.pop();
@@ -882,9 +909,9 @@ class Level {
             this.w = w;
             this.h = h;
             this.tiles = tiles.slice();
-            this.checkCompleted();
         } else {
-            if (this.loadLevelFromMemory() === false) {
+            if (Game.completedLevels[this.levelNum] ||
+                this.loadLevelFromMemory() === false) { // check if the player has started this level earlier, if so load that
                 this.loadDefaultLevel();
             }
         }
@@ -893,13 +920,10 @@ class Level {
     }
 
     loadDefaultLevel(): void {
-        var lvl = Game.defaultLevels[this.levelNum] || Game.defaultLevels[0];
+        var lvl = Game.defaultLevels[this.levelNum];
         this.w = (<number>lvl[0]);
         this.h = (<number>lvl[1]);
         this.tiles = Level.anyArrayToTileArray(this.w, this.h, (<Array<any>>lvl[2]));
-
-        this.update();
-        this.checkCompleted();
     }
 
     clear(): void {
@@ -908,7 +932,6 @@ class Level {
         }
 
         this.update();
-        this.checkCompleted();
     }
 
     getTile(x: number, y: number): Tile {
@@ -935,6 +958,8 @@ class Level {
         }
 
         // OPTIMIZATION: only render stuff when updates are made
+
+        this.checkCompleted();
     }
 
     // OPTIMIZATION: pass in context through entire rendering chain?
@@ -964,33 +989,34 @@ class Level {
         }
 
         this.update();
+    }
 
-        this.checkCompleted();
+    /* Checks if all of this level's receptors have been activated and sets Game.completedLevels[levelNum] = true if so */
+    checkCompleted(): void {
+        var on = true;
+        for (var i = 0; i < this.tiles.length; i++) {
+            if (this.tiles[i].id === ID.RECEPTOR) {
+                if ((<ReceptorTile>this.tiles[i]).allReceptorsOn() == false) {
+                    on = false;
+                    break;
+                }
+            }
+        }
+        if (on) {
+            // As soon as this level is completed once, this gets set to true until the player manually resets all their data
+            Game.completedLevels[this.levelNum] = true;
+        }
 
-        if (Game.completedLevels[this.levelNum]) {
+        if (on && Game.popupUp === false) { // only show the popup when the player actually completed the level this tick, not if completedLevels[i] is true
             var str = '<div id="popupContent">' +
                 '<h3>Level complete!</h3> <p>Good job!</p>' +
                 '<div class="popupButton button" id="returnButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); }">Return</div>' +
-                '<div class="popupButton button" id="nextButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); if (' + (this.levelNum + 1) +  ' < Game.defaultLevels.length) { Game.sm.enterState(\'game\', ' + (this.levelNum + 1) + '); } Game.clearPopup(); }">Next Level!</div>' +
+                '<div class="popupButton button" id="nextButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); if (' + (this.levelNum + 1) + ' < Game.defaultLevels.length) { Game.sm.enterState(\'game\', ' + (this.levelNum + 1) + '); } }">Next Level!</div>' +
                 '</div>';
             Game.setPopup(str);
         } else {
             Game.clearPopup();
         }
-    }
-
-    /* Checks if all of this level's receptors have been activated and sets Game.completedLevels[levelNum] = true if so */
-    checkCompleted(): void {
-        for (var i = 0; i < this.tiles.length; i++) {
-            if (this.tiles[i].id === ID.RECEPTOR) {
-                if ((<ReceptorTile>this.tiles[i]).allReceptorsOn() == false) {
-                    Game.completedLevels[this.levelNum] = false;
-                    return;
-                }
-            }
-        }
-
-        Game.completedLevels[this.levelNum] = true;
     }
 
     hover(event: MouseEvent, into: boolean): void {
@@ -1061,12 +1087,29 @@ class Level {
         return true;
     }
 
-    removeFromMemory(): void {
+    static resetAll(): void {
+        for (var i = 0; i < Game.defaultLevels.length; i++) {
+            Level.removeFromMemory(i);
+        }
+        LevelSelectState.updateButtonBgs();
+    }
+
+    reset(): void {
+        Level.removeFromMemory(this.levelNum);
+        this.loadDefaultLevel();
+        this.update();
+        // Game.completedLevels[this.levelNum] = false; // I think level completion should only be reset upon clicking the resetAll buton in the options screen
+        // LevelSelectState.updateButtonBgs();
+    }
+
+    static removeFromMemory(levelNum: number): void {
         if (typeof (Storage) === "undefined") {
             return; // LATER USE COOKIES HERE INSTEAD ALSO?
         }
-        if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + this.levelNum) !== null) window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + this.levelNum);
-        this.loadDefaultLevel();
+        if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + levelNum) !== null) {
+          window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + levelNum);
+            Game.completedLevels[levelNum] = false;
+        }
     }
 
     saveToMemory(): void {
@@ -1145,49 +1188,49 @@ class Level {
         return str;
     }
 
-        static anyArrayToTileArray(w: number, h: number, arr: Array<any>): Array<Tile> {
-            var tiles = new Array<Tile>(arr.length);
-            for (var i = 0; i < w * h; i++) {
+    static anyArrayToTileArray(w: number, h: number, arr: Array<any>): Array<Tile> {
+        var tiles = new Array<Tile>(arr.length);
+        for (var i = 0; i < w * h; i++) {
 
-                tiles[i] = Level.getNewDefaultTile(arr[i], i % w, Math.floor(i / w));
+            tiles[i] = Level.getNewDefaultTile(arr[i], i % w, Math.floor(i / w));
 
-                if (tiles[i] === null) { // its a more complex type (it contains a sub-array)
-                    switch (arr[i][0]) {
-                        case ID.BLANK:
-                            console.error("Blank tiles shouldn't be saved using arrays (index: " + i + ")");
-                            tiles[i] = new BlankTile(i % w, Math.floor(i / w));
-                            break;
-                        case ID.MIRROR:
-                            tiles[i] = new MirrorTile(i % w, Math.floor(i / w), arr[i][1]);
-                            break;
-                        case ID.POINTER:
-                            tiles[i] = new PointerTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2], arr[i][3]);
-                            break;
-                        case ID.RECEPTOR:
-                            tiles[i] = new ReceptorTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2]);
-                            break;
-                        default:
-                            console.error("Invalid tile property: " + arr[i] + " at index " + i);
-                            break;
-                    }
+            if (tiles[i] === null) { // its a more complex type (it contains a sub-array)
+                switch (arr[i][0]) {
+                    case ID.BLANK:
+                        console.error("Blank tiles shouldn't be saved using arrays (index: " + i + ")");
+                        tiles[i] = new BlankTile(i % w, Math.floor(i / w));
+                        break;
+                    case ID.MIRROR:
+                        tiles[i] = new MirrorTile(i % w, Math.floor(i / w), arr[i][1]);
+                        break;
+                    case ID.POINTER:
+                        tiles[i] = new PointerTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2], arr[i][3]);
+                        break;
+                    case ID.RECEPTOR:
+                        tiles[i] = new ReceptorTile(i % w, Math.floor(i / w), arr[i][1], arr[i][2]);
+                        break;
+                    default:
+                        console.error("Invalid tile property: " + arr[i] + " at index " + i);
+                        break;
                 }
             }
-            return tiles;
         }
+        return tiles;
+    }
 
-        static getNewDefaultTile(id: number, x: number, y: number): Tile {
-            switch (id) {
-                case ID.BLANK:
-                    return new BlankTile(x, y);
-                case ID.MIRROR:
-                    return new MirrorTile(x, y, DIRECTION.NORTH);
-                case ID.POINTER:
-                    return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
-                case ID.RECEPTOR:
-                    return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
-            }
-            return null;
+    static getNewDefaultTile(id: number, x: number, y: number): Tile {
+        switch (id) {
+            case ID.BLANK:
+                return new BlankTile(x, y);
+            case ID.MIRROR:
+                return new MirrorTile(x, y, DIRECTION.NORTH);
+            case ID.POINTER:
+                return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
+            case ID.RECEPTOR:
+                return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
         }
+        return null;
+    }
 
     copy(): Level {
         return new Level(this.levelNum, this.w, this.h, this.tiles);
