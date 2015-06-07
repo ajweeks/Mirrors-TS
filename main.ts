@@ -135,6 +135,7 @@ class Game {
         Game.sm = new StateManager();
 
         Game.completedLevels = new Array<boolean>(Game.defaultLevels.length);
+        Level.loadCompletedLevelsFromMemory();
 
         Game.setDefaultPrefs();
     }
@@ -161,8 +162,10 @@ class Game {
 
     // TODO LATER add a tutorial overlay? controls at least?
 
-    static setPopup(str: string): void {
+    /* @param styles: any css styles to be added to the popup container */
+    static setPopup(str: string, styles: string = ''): void {
         get('darken').style.display = "initial";
+        get('popup').style.cssText = styles;
         get('popup').style.display = "initial";
         get('popup').innerHTML = str;
         Game.popupUp = true;
@@ -287,11 +290,11 @@ class OptionState extends BasicState {
         get('optionstate').style.display = "block";
     }
 
-    setResetLevelPopup():void {
-      Game.setPopup('<h3>Clear level data</h3>' +
-      '<p>Are you sure? This will erase all of your saved data!</p>' +
-      '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
-      '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>');
+    setResetLevelPopup(): void {
+        Game.setPopup('<h3>Clear level data</h3>' +
+            '<p>Are you sure? This will erase all of your saved data!</p>' +
+            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
+            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>', 'margin-left: -170px;');
     }
 
     restore() {
@@ -473,7 +476,7 @@ class GameState extends BasicState {
 
     click(event: MouseEvent, down: boolean): void {
         this.level.click(event, down);
-        (<GameState> Game.sm.currentState()).level.saveToMemory(); // save the board every time the user updates the board LATER save on a timer instead? Or when leaving the page?
+        this.level.saveToMemory(); // save the board every time the user updates the board LATER save on a timer instead? Or when leaving the page?
     }
 
     hover(event: MouseEvent, into: boolean): void {
@@ -1003,8 +1006,13 @@ class Level {
             }
         }
         if (on) {
-            // As soon as this level is completed once, this gets set to true until the player manually resets all their data
-            Game.completedLevels[this.levelNum] = true;
+            Level.removeFromMemory(this.levelNum); // the player beat the level, no need storing their progress anymore
+
+            // This is the first time the level has been completed, completedLevels[lvlnum] gets set to true until the player manually resets all their data
+            if (Game.completedLevels[this.levelNum] !== true) { // only checking if not true to be more efficient
+                Game.completedLevels[this.levelNum] = true;
+                Level.saveCompletedLevelsToMemory();
+            }
         }
 
         if (on && Game.popupUp === false) { // only show the popup when the player actually completed the level this tick, not if completedLevels[i] is true
@@ -1091,6 +1099,8 @@ class Level {
         for (var i = 0; i < Game.defaultLevels.length; i++) {
             Level.removeFromMemory(i);
         }
+        Game.completedLevels = new Array<boolean>(Game.defaultLevels.length);
+        Level.saveCompletedLevelsToMemory();
         LevelSelectState.updateButtonBgs();
     }
 
@@ -1098,8 +1108,6 @@ class Level {
         Level.removeFromMemory(this.levelNum);
         this.loadDefaultLevel();
         this.update();
-        // Game.completedLevels[this.levelNum] = false; // I think level completion should only be reset upon clicking the resetAll buton in the options screen
-        // LevelSelectState.updateButtonBgs();
     }
 
     static removeFromMemory(levelNum: number): void {
@@ -1107,8 +1115,7 @@ class Level {
             return; // LATER USE COOKIES HERE INSTEAD ALSO?
         }
         if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + levelNum) !== null) {
-          window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + levelNum);
-            Game.completedLevels[levelNum] = false;
+            window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + levelNum);
         }
     }
 
@@ -1118,6 +1125,8 @@ class Level {
             console.error("Failed to save data. Please update your browser.");
             return; // LATER USE COOKIES HERE INSTEAD?
         }
+
+        if (Game.completedLevels[this.levelNum]) return; // the player already beat this level, we don't need to save their data anymore
 
         str += Game.version + '|';
 
@@ -1144,6 +1153,25 @@ class Level {
             }
         }
         window.localStorage.setItem(Game.saveLocation + ' lvl: ' + this.levelNum, encodeURI(str)); // LATER add more encryption to prevent cheating!
+    }
+
+    static saveCompletedLevelsToMemory(): void {
+        var str = '';
+        for (var i = 0; i < Game.completedLevels.length; i++) {
+            if (Game.completedLevels[i] === true) str += i + ',';
+        }
+        str = str.substr(0, Math.max(str.length - 1, 0)); // remove last comma
+        if (str.length === 0) {
+            if (window.localStorage.getItem(Game.saveLocation + ' cl: ') !== undefined) window.localStorage.removeItem(Game.saveLocation + ' cl: ');
+        } else window.localStorage.setItem(Game.saveLocation + ' cl: ', encodeURI(str));
+    }
+
+    static loadCompletedLevelsFromMemory(): void {
+        if (window.localStorage.getItem(Game.saveLocation + ' cl: ') === null) return;
+        var str: Array<number> = window.localStorage.getItem(Game.saveLocation + ' cl: ').split(',');
+        for (var i = 0; i < Game.completedLevels.length; i++) {
+            if (str[i]) Game.completedLevels[str[i]] = true;
+        }
     }
 
     /* Only used to generate the default levels, so I can make a level with the built-in editor, and export it with a click */

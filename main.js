@@ -99,6 +99,7 @@ var Game = (function () {
         document.body.appendChild(Game.stats.domElement);
         Game.sm = new StateManager();
         Game.completedLevels = new Array(Game.defaultLevels.length);
+        Level.loadCompletedLevelsFromMemory();
         Game.setDefaultPrefs();
     };
     Game.renderImage = function (context, x, y, image, dir, size) {
@@ -118,8 +119,10 @@ var Game = (function () {
         setLevelEditMode(Game.debug);
         Game.preferences.warn = !Game.debug;
     };
-    Game.setPopup = function (str) {
+    Game.setPopup = function (str, styles) {
+        if (styles === void 0) { styles = ''; }
         get('darken').style.display = "initial";
+        get('popup').style.cssText = styles;
         get('popup').style.display = "initial";
         get('popup').innerHTML = str;
         Game.popupUp = true;
@@ -247,7 +250,7 @@ var OptionState = (function (_super) {
         Game.setPopup('<h3>Clear level data</h3>' +
             '<p>Are you sure? This will erase all of your saved data!</p>' +
             '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
-            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>');
+            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>', 'margin-left: -170px;');
     };
     OptionState.prototype.restore = function () {
         get('optionstate').style.display = "block";
@@ -398,7 +401,7 @@ var GameState = (function (_super) {
     };
     GameState.prototype.click = function (event, down) {
         this.level.click(event, down);
-        Game.sm.currentState().level.saveToMemory();
+        this.level.saveToMemory();
     };
     GameState.prototype.hover = function (event, into) {
         this.level.hover(event, into);
@@ -881,7 +884,11 @@ var Level = (function () {
             }
         }
         if (on) {
-            Game.completedLevels[this.levelNum] = true;
+            Level.removeFromMemory(this.levelNum);
+            if (Game.completedLevels[this.levelNum] !== true) {
+                Game.completedLevels[this.levelNum] = true;
+                Level.saveCompletedLevelsToMemory();
+            }
         }
         if (on && Game.popupUp === false) {
             var str = '<div id="popupContent">' +
@@ -946,6 +953,8 @@ var Level = (function () {
         for (var i = 0; i < Game.defaultLevels.length; i++) {
             Level.removeFromMemory(i);
         }
+        Game.completedLevels = new Array(Game.defaultLevels.length);
+        Level.saveCompletedLevelsToMemory();
         LevelSelectState.updateButtonBgs();
     };
     Level.prototype.reset = function () {
@@ -959,7 +968,6 @@ var Level = (function () {
         }
         if (window.localStorage.getItem(Game.saveLocation + ' lvl: ' + levelNum) !== null) {
             window.localStorage.removeItem(Game.saveLocation + ' lvl: ' + levelNum);
-            Game.completedLevels[levelNum] = false;
         }
     };
     Level.prototype.saveToMemory = function () {
@@ -968,6 +976,8 @@ var Level = (function () {
             console.error("Failed to save data. Please update your browser.");
             return;
         }
+        if (Game.completedLevels[this.levelNum])
+            return;
         str += Game.version + '|';
         str += this.w + ',' + this.h + '|';
         for (i = 0; i < this.tiles.length; i++) {
@@ -992,6 +1002,29 @@ var Level = (function () {
             }
         }
         window.localStorage.setItem(Game.saveLocation + ' lvl: ' + this.levelNum, encodeURI(str));
+    };
+    Level.saveCompletedLevelsToMemory = function () {
+        var str = '';
+        for (var i = 0; i < Game.completedLevels.length; i++) {
+            if (Game.completedLevels[i] === true)
+                str += i + ',';
+        }
+        str = str.substr(0, Math.max(str.length - 1, 0));
+        if (str.length === 0) {
+            if (window.localStorage.getItem(Game.saveLocation + ' cl: ') !== undefined)
+                window.localStorage.removeItem(Game.saveLocation + ' cl: ');
+        }
+        else
+            window.localStorage.setItem(Game.saveLocation + ' cl: ', encodeURI(str));
+    };
+    Level.loadCompletedLevelsFromMemory = function () {
+        if (window.localStorage.getItem(Game.saveLocation + ' cl: ') === null)
+            return;
+        var str = window.localStorage.getItem(Game.saveLocation + ' cl: ').split(',');
+        for (var i = 0; i < Game.completedLevels.length; i++) {
+            if (str[i])
+                Game.completedLevels[str[i]] = true;
+        }
     };
     Level.prototype.getLevelString = function () {
         var i, j, tile, receptors, lvl = new Array(3);
