@@ -124,7 +124,7 @@ var Game = (function () {
         get('darken').style.display = "initial";
         get('popup').style.cssText = styles;
         get('popup').style.display = "initial";
-        get('popup').innerHTML = str;
+        get('popup').innerHTML = '<a id="popupClose" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.select); Game.clearPopup(); }">x</a>' + str;
         Game.popupUp = true;
     };
     Game.clearPopup = function () {
@@ -137,6 +137,7 @@ var Game = (function () {
         Game.ticks += 1;
         if (Game.keysdown[Game.KEYBOARD.ESC]) {
             if (Game.popupUp === true) {
+                Sound.play(Sound.select);
                 Game.clearPopup();
             }
             else {
@@ -166,19 +167,31 @@ var Game = (function () {
         Game.stats.end();
         window.setTimeout(Game.loop, 1000 / Game.fps);
     };
-    Game.version = 0.041;
+    Game.version = 0.043;
     Game.releaseStages = { DEVELOPMENT: "development", PRODUCTION: "production" };
-    Game.releaseStage = Game.releaseStages.DEVELOPMENT;
+    Game.releaseStage = Game.releaseStages.PRODUCTION;
     Game.images = [];
     Game.preferences = { 'warn': Game.debug };
     Game.selectedTileID = ID.BLANK;
     Game.saveLocation = "Mirrors";
     Game.popupUp = false;
     Game.defaultLevels = [
-        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 0], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [3, 3, 'GXXX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 1, 'RXXX'], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [2, 3, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-        [10, 8, [[2, 1, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1, 1], 0, [1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 0, 1, 0], 0, 0, 0, 0, 0, 0, [3, 2, 'XXRB'], 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1]]],
-        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 1], 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 0, 'XXGX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 0, 'XXBX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [2, 2, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 3, 'RXGX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [3, 1, 'WWWX'], 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, [2, 0, 1, 1], 0, [2, 0, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 1, 0, 1, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, [3, 3, 'RXBX'], 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, [2, 3, 1, 2], 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, [2, 1, 1, 2], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, [3, 1, 'BXXR'], 0, 1, 1, 0, 0, [2, 3, 1, 0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [[2, 1, 1, 0], 0, 0, 1, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 1, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, [2, 2, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 0, 1, 1], 0, 0, 0, 0, 0, 0, 0, [1, 1], [1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, [3, 1, 'GRGX'], 0, [1, 1], 1, 0, 0, 0, 0, 0, 1, 0, 0]],
+        [9, 9, [0, [2, 1, 1, 2], 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 1, 0, [1, 1], 0, 0, 0, 1, 0, 0, [3, 2, 'XXRX'], 0, 0, 0, 0, 0, 1, [1, 1], 0, 0, 0, [3, 3, 'GXBX'], 0, 0, 0, [1, 1], 0, 0, [2, 1, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 0, [1, 1], 1, 0, 0, [2, 3, 1, 0], 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, [1, 1]]],
+        [9, 9, [[2, 2, 1, 1], 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 1, 0, 1, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, [2, 3, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 2, 'BXWX'], 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0]],
+        [9, 9, [0, [1, 1], 0, 0, 0, 0, 0, [2, 2, 1, 2], 0, [2, 1, 1, 0], 0, 0, 0, 0, 0, 1, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], [3, 1, 'RXBG'], 0, 1, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, [1, 1], 1, 0, 0, 0, 0, 0, 0, 0, [2, 3, 1, 2], 1, 0, 0, 0, 0, 0, 0, [3, 3, 'XXBX'], 0, 0, [2, 0, 1, 1], 0, 0, 1, 0, 0, 0, 0]],
+        [9, 9, [0, [1, 1], 0, [1, 1], [2, 3, 1, 1], 1, 1, 1, [1, 1], [2, 2, 1, 2], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, [1, 1], [1, 1], 0, 1, 2, 0, 0, 0, 0, 0, [3, 0, 'RXXX'], [1, 1], 0, 1, 0, 0, 1, 0, 0, 0, [3, 2, 'GXGX'], 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, [3, 2, 'WXBX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, [1, 1], 0, 0, [2, 3, 1, 0], [2, 0, 1, 1], 0, [1, 1], 0, 0, 0, 0, [1, 1], 0]],
+        [9, 9, [0, 0, [2, 1, 1, 1], 1, 0, [1, 1], 1, 1, 0, 0, [2, 1, 1, 0], 0, [1, 1], 0, 1, 0, [3, 0, 'RGRG'], 1, 0, 0, 0, 0, 1, 0, [1, 1], 0, 0, 0, [1, 1], 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, [1, 1], 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, [2, 0, 1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [0, [1, 1], 0, 0, [1, 1], 1, [1, 1], [1, 1], 1, [1, 1], 0, [1, 1], [2, 1, 1, 2], 0, 0, [1, 1], [1, 1], 0, 0, 0, 0, 1, 1, 0, 1, 2, 0, [2, 0, 1, 1], 0, [3, 0, 'BRXG'], [1, 1], [3, 0, 'XGBR'], 0, [1, 1], 1, 0, [2, 1, 1, 2], 1, 0, 0, 0, 0, 0, [2, 0, 1, 1], 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 0], 0, 0, 0, 0, 1, 0, 0, 0, [2, 1, 1, 0], 1, [1, 1], 0, 0, [1, 1], 1, [1, 1], 0, 0, 0, 1, 0, 0, 1]],
+        [9, 9, [[2, 1, 1, 1], 0, 1, 0, 0, 0, [1, 1], 0, [2, 3, 1, 1], 0, [1, 1], [1, 1], 0, 0, 0, [1, 1], 1, 0, 0, 0, 0, [1, 1], [3, 1, 'WXWX'], [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1, 1], [3, 0, 'WXWX'], [1, 1], 0, 0, [1, 1], 0, [2, 1, 1, 0], 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, [1, 1], 0, 1, [1, 1], 0, 0]],
+        [9, 9, [0, 0, 0, 0, [2, 3, 1, 2], [2, 2, 1, 2], [2, 2, 1, 2], [2, 1, 1, 2], 0, [1, 1], 0, 0, 1, 0, 0, 0, 0, 0, [3, 3, 'XXBX'], 0, [1, 1], [3, 2, 'RXBX'], 1, 1, 0, 0, 0, 0, [1, 1], 1, [1, 1], [3, 0, 'RXBX'], [1, 1], 0, 0, 0, 0, 0, [1, 1], 0, [1, 1], [3, 0, 'RXBX'], [1, 1], [1, 1], 0, 0, 0, 0, 1, [1, 1], 1, [3, 3, 'RXBX'], 1, 0, 0, 0, 0, 0, [1, 1], 0, 1, [2, 3, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 3, 1, 0], 2, 2, [2, 1, 1, 0], 0, 0, 0, 0]],
+        [9, 9, [[1, 1], 0, 1, 0, 0, 0, [1, 1], 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, [3, 2, 'XXRX'], [3, 1, 'XXGX'], [3, 3, 'BXXX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, [1, 1], 0, 0, [1, 1], 0, 2, [2, 0, 1, 1], [2, 1, 1, 2], 0, 0, [1, 1], 1, 0, 1]]
     ];
     Game.keysdown = [];
     Game.offset = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -244,16 +257,16 @@ var OptionState = (function (_super) {
     __extends(OptionState, _super);
     function OptionState(sm) {
         _super.call(this, STATE.OPTION, sm);
-        get('optionstate').style.display = "block";
+        get('optionstate').style.display = "initial";
     }
-    OptionState.prototype.setResetLevelPopup = function () {
+    OptionState.prototype.setResetAllLevelsPopup = function () {
         Game.setPopup('<h3>Clear level data</h3>' +
-            '<p>Are you sure? This will erase all of your saved data!</p>' +
-            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
-            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>', 'margin-left: -170px;');
+            '<p>Are you sure? This will erase all of your saved data!<br />This can not be undone!</p>' +
+            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.wizzle); Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
+            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.select); Game.clearPopup(); }">Cancel</div>', 'margin-left: -170px;');
     };
     OptionState.prototype.restore = function () {
-        get('optionstate').style.display = "block";
+        get('optionstate').style.display = "initial";
     };
     OptionState.prototype.destroy = function () {
         get('optionstate').style.display = "none";
@@ -269,27 +282,37 @@ var LevelSelectState = (function (_super) {
         this.offset = 150;
         this.maxOffset = -(Math.ceil(this.numOfLevels / this.height) * 250 - window.innerWidth + 150);
         get('levelselectstate').style.display = "block";
-        var x, y, str = '', n;
+        var x, y, str = '', index;
         for (x = 0; x < Math.ceil(this.numOfLevels / this.height); x++) {
             str += '<div class="col">';
             for (y = 0; y < this.height; y++) {
-                n = (x * this.height) + y;
-                var enabled = Game.defaultLevels[n] !== undefined;
-                str += '<div class="button lvlselect' + (enabled ? ' enabled' : '') + '" id="' + n + 'lvlselectButton" ' +
-                    (enabled ? 'onmousedown="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + n + ');"' : '') +
-                    '>' + decimalToHex(n) + '</div>';
+                index = x * this.height + y;
+                var enabled = Game.defaultLevels[index] !== undefined;
+                str += '<div class="button lvlselect' + (enabled ? ' enabled' : '') + '" id="' + index + 'lvlselectButton" ' +
+                    (enabled ? 'onclick="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + index + ');"' : '') +
+                    '>' + index + '</div>';
             }
             str += '</div>';
         }
         str += '<div id="backarrow" onmouseover="Game.lvlselectButtonDirection=1;" onmouseout="Game.lvlselectButtonDirection = 0;" style="visibility: hidden"><p>&#9664;</p></div>';
         str += '<div id="forwardarrow" onmouseover="Game.lvlselectButtonDirection=-1" onmouseout="Game.lvlselectButtonDirection = 0;"><p>&#9654;</p></div>';
-        str += '<div class="button" onmousedown="if (clickType(event)===\'left\') Game.sm.enterPreviousState();" style="margin-left: -90px; margin-top: -490px;">Back</div>';
+        str += '<div class="button" onclick="if (clickType(event)===\'left\') Game.sm.enterPreviousState();" style="margin-left: -90px; margin-top: -490px;">Back</div>';
         get('levelselectstate').style.width = 250 * Math.ceil(this.numOfLevels / this.height) + 'px';
         get('levelselectstate').style.marginLeft = '150px';
         get('levelselectstate').style.marginTop = '80px';
         get('levelselectstate').innerHTML = str;
         LevelSelectState.updateButtonBgs();
     }
+    LevelSelectState.prototype.highestLevelUnlocked = function () {
+        var highest = 0;
+        for (var i = 0; i < this.numOfLevels; i++) {
+            if (Game.completedLevels[i] === false) {
+                highest = i;
+            }
+        }
+        highest %= 8;
+        highest += 8;
+    };
     LevelSelectState.updateButtonBgs = function () {
         if (get('levelselectstate').innerHTML === '')
             return;
@@ -313,6 +336,7 @@ var LevelSelectState = (function (_super) {
             get('forwardarrow').style.visibility = "hidden";
         }
         else {
+            this.highestLevelUnlocked();
             get('forwardarrow').style.visibility = "visible";
             get('backarrow').style.visibility = "visible";
         }
@@ -341,7 +365,7 @@ var GameState = (function (_super) {
             Level.getNewDefaultTile(ID.POINTER, 0, 0),
             Level.getNewDefaultTile(ID.RECEPTOR, 0, 0)];
         this.level = new Level(this.levelNum);
-        get('gameboard').style.display = "block";
+        get('gameboard').style.display = "initial";
         get('gameboard').style.left = "50%";
         get('gameboard').style.marginLeft = -(this.level.w * Tile.size) / 2 + "px";
         get('gameboard').style.width = this.level.w * Tile.size + "px";
@@ -349,26 +373,27 @@ var GameState = (function (_super) {
         get('gamecanvas').width = this.level.w * Tile.size;
         get('gamecanvas').height = this.level.h * Tile.size;
         get('lvledittiles').innerHTML = '<div>' +
-            '<div class="selectionTile" id="0tile" onmousedown="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" ' +
+            '<div class="selectionTile" id="0tile" onclick="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" ' +
             'onmouseover="get(\'0tilep\').style.visibility=\'visible\'" onmouseout="get(\'0tilep\').style.visibility=\'hidden\'"><p id="0tilep" style="visibility: hidden">blank</p></div>' +
-            '<div class="selectionTile" id="1tile" onmousedown="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" ' +
+            '<div class="selectionTile" id="1tile" onclick="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" ' +
             'onmouseover="get(\'1tilep\').style.visibility=\'visible\'" onmouseout="get(\'1tilep\').style.visibility=\'hidden\'"><p id="1tilep" style="visibility: hidden">mirror</p></div>' +
-            '<div class="selectionTile" id="2tile" onmousedown="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" ' +
+            '<div class="selectionTile" id="2tile" onclick="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" ' +
             'onmouseover="get(\'2tilep\').style.visibility=\'visible\'" onmouseout="get(\'2tilep\').style.visibility=\'hidden\'"><p id="2tilep" style="visibility: hidden">pointer</p></div>' +
-            '<div class="selectionTile" id="3tile" onmousedown="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" ' +
+            '<div class="selectionTile" id="3tile" onclick="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" ' +
             'onmouseover="get(\'3tilep\').style.visibility=\'visible\'" onmouseout="get(\'3tilep\').style.visibility=\'hidden\'"><p id="3tilep" style="visibility: hidden">receptor</p></div>' +
-            '<div class="selectionTile" id="printButton" onmousedown="selectionTileClick(event, true, 888)"><p>print</p></div>' +
-            '<div class="selectionTile" id="clearButton" onmousedown="selectionTileClick(event, true, 887)"><p>clear</p></div>' +
-            '<div class="selectionTile" id="helpButton" onmousedown="selectionTileClick(event, true, 886)"><p>help</p></div>' +
+            '<div class="selectionTile" id="printButton" onclick="selectionTileClick(event, true, 888)"><p>print</p></div>' +
+            '<div class="selectionTile" id="clearButton" onclick="selectionTileClick(event, true, 887)"><p>clear</p></div>' +
+            '<div class="selectionTile" id="helpButton" onclick="selectionTileClick(event, true, 886)"><p>help</p></div>' +
             '</div>';
         get('lvledittilescanvas').width = Tile.size;
         get('lvledittilescanvas').height = 7 * Tile.size;
         if (GameState.levelEditMode) {
-            get('lvledittilesarea').style.display = "block";
+            get('lvledittilesarea').style.display = "initial";
         }
         else {
             get('lvledittilesarea').style.display = "none";
         }
+        get('levelNumHeading').innerHTML = 'Level ' + this.levelNum;
     }
     GameState.prototype.update = function () {
     };
@@ -391,9 +416,9 @@ var GameState = (function (_super) {
         }
     };
     GameState.prototype.restore = function () {
-        get('gameboard').style.display = "block";
+        get('gameboard').style.display = "initial";
         if (GameState.levelEditMode)
-            get('lvledittilesarea').style.display = "block";
+            get('lvledittilesarea').style.display = "initial";
     };
     GameState.prototype.destroy = function () {
         get('gameboard').style.display = "none";
@@ -405,6 +430,12 @@ var GameState = (function (_super) {
     };
     GameState.prototype.hover = function (event, into) {
         this.level.hover(event, into);
+    };
+    GameState.prototype.setResetLevelPopup = function () {
+        Game.setPopup('<h3>Reset level</h3>' +
+            '<p>Are you sure you want to reset?</p>' +
+            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.wizzle); Game.sm.currentState().level.reset(); Game.clearPopup(); }">Reset</div>' +
+            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.select); Game.clearPopup(); }">Cancel</div>', 'margin-left: -146px;');
     };
     return GameState;
 })(BasicState);
@@ -424,6 +455,7 @@ var StateManager = (function () {
         }
     };
     StateManager.prototype.enterState = function (state, levelNum) {
+        Sound.play(Sound.select);
         this.currentState().hide();
         if (state === "game")
             this.states.push(this.getState(state, levelNum || 0));
@@ -449,6 +481,7 @@ var StateManager = (function () {
         // TODO figure out why this line was here... pretty sure it just messes other things up now..
         // if (this.states[this.states.length - 1].id === STATE.GAME) (<GameState>this.states[this.states.length - 1]).level.checkCompleted();
         if (this.states.length > 1) {
+            Sound.play(Sound.select);
             this.currentState().destroy();
             this.states.pop();
             this.currentState().restore();
@@ -484,9 +517,14 @@ var Receptor = (function () {
         this.on = false;
     }
     Receptor.prototype.update = function () {
+        var wasOn = this.on;
         this.on = (this.laser !== null && Receptor.colourTurnsMeOn(this.laser.colour, this.colour));
         if (this.on === false) {
             this.laser = null;
+        }
+        else {
+            if (wasOn === false)
+                Sound.play(Sound.blip);
         }
     };
     Receptor.prototype.render = function (context, x, y, dir) {
@@ -623,13 +661,15 @@ var PointerTile = (function (_super) {
             _super.prototype.click.call(this, event, down);
         }
         else if (clickType(event) === "right") {
-            this.on = !this.on;
-            if (this.on) {
-                this.colour = Colour.nextColor(this.colour, false);
-                this.addLaser(new Laser(null, this.dir, this.colour));
-            }
-            else {
-                this.removeAllLasers();
+            if (GameState.levelEditMode) {
+                this.on = !this.on;
+                if (this.on) {
+                    this.colour = Colour.nextColor(this.colour, false);
+                    this.addLaser(new Laser(null, this.dir, this.colour));
+                }
+                else {
+                    this.removeAllLasers();
+                }
             }
         }
     };
@@ -874,6 +914,8 @@ var Level = (function () {
         this.update();
     };
     Level.prototype.checkCompleted = function () {
+        if (GameState.levelEditMode)
+            return;
         var on = true;
         for (var i = 0; i < this.tiles.length; i++) {
             if (this.tiles[i].id === ID.RECEPTOR) {
@@ -885,6 +927,7 @@ var Level = (function () {
         }
         if (on) {
             Level.removeFromMemory(this.levelNum);
+            Sound.play(Sound.win);
             if (Game.completedLevels[this.levelNum] !== true) {
                 Game.completedLevels[this.levelNum] = true;
                 Level.saveCompletedLevelsToMemory();
@@ -1004,6 +1047,10 @@ var Level = (function () {
         window.localStorage.setItem(Game.saveLocation + ' lvl: ' + this.levelNum, encodeURI(str));
     };
     Level.saveCompletedLevelsToMemory = function () {
+        if (typeof (Storage) === "undefined") {
+            console.error("Failed to save data. Please update your browser.");
+            return;
+        }
         var str = '';
         for (var i = 0; i < Game.completedLevels.length; i++) {
             if (Game.completedLevels[i] === true)
@@ -1015,9 +1062,13 @@ var Level = (function () {
                 window.localStorage.removeItem(Game.saveLocation + ' cl: ');
         }
         else
-            window.localStorage.setItem(Game.saveLocation + ' cl: ', encodeURI(str));
+            window.localStorage.setItem(Game.saveLocation + ' cl: ', str);
     };
     Level.loadCompletedLevelsFromMemory = function () {
+        if (typeof (Storage) === "undefined") {
+            console.error("Failed to save data. Please update your browser.");
+            return;
+        }
         if (window.localStorage.getItem(Game.saveLocation + ' cl: ') === null)
             return;
         var str = window.localStorage.getItem(Game.saveLocation + ' cl: ').split(',');
@@ -1044,7 +1095,7 @@ var Level = (function () {
                         lvl[2][i] = [ID.MIRROR, tile.dir];
                     break;
                 case ID.POINTER:
-                    if (tile.dir === DIRECTION.NORTH && tile.on === false && tile.colour === COLOUR.RED)
+                    if (tile.dir === DIRECTION.NORTH && tile.on === true && tile.colour === COLOUR.RED)
                         lvl[2][i] = ID.POINTER;
                     else
                         lvl[2][i] = [ID.POINTER, tile.dir, getBoolShorthand(tile.on), tile.colour];
@@ -1104,7 +1155,7 @@ var Level = (function () {
             case ID.MIRROR:
                 return new MirrorTile(x, y, DIRECTION.NORTH);
             case ID.POINTER:
-                return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
+                return new PointerTile(x, y, DIRECTION.NORTH, true, COLOUR.RED);
             case ID.RECEPTOR:
                 return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
         }
@@ -1114,6 +1165,26 @@ var Level = (function () {
         return new Level(this.levelNum, this.w, this.h, this.tiles);
     };
     return Level;
+})();
+var Sound = (function () {
+    function Sound() {
+    }
+    Sound.toggleMute = function () {
+        Sound.muted = !Sound.muted;
+    };
+    Sound.play = function (sound) {
+        if (Sound.muted)
+            return;
+        get(sound).currentTime = 0;
+        get(sound).play();
+    };
+    Sound.blip = 'blipSound';
+    Sound.win = 'winSound';
+    Sound.select = 'selectSound';
+    Sound.select3 = 'selectSound3';
+    Sound.wizzle = 'wizzleSound';
+    Sound.muted = false;
+    return Sound;
 })();
 var Colour = (function () {
     function Colour() {
@@ -1199,15 +1270,17 @@ function selectionTileClick(event, down, id) {
     if (clickType(event) !== 'left')
         return;
     if (id === 888) {
-        prompt("This is the level code: copy and paste it somewhere you'll remember", Game.sm.currentState().level.getLevelString());
+        var msg = "<h3>Level " + Game.sm.currentState().level.levelNum + " save</h3><p>Copy and paste into Game.defaultLevels!</p><textarea id='levelSave' readonly>" + Game.sm.currentState().level.getLevelString() + "</textarea>";
+        Game.setPopup(msg, 'max-width: 320px; margin-left: -172px');
+        get('levelSave').select();
     }
     else if (id === 887) {
         Game.sm.currentState().level.clear();
     }
     else if (id === 886) {
-        var msg = "Hello curious player! You are currently in Mirror's level editor. Here you can create your own levels! The print button will export the save as a string." +
-            " Level loading has not yet been implemented, but it might be soon. \n\nTip: hold crtl to edit tiles while still in lvl edit mode";
-        alert(msg);
+        var msg = "<h3>Level editor help</h3><p>Hello curious player! You are currently in Mirror's level editor. Here you can create your own levels! The print button will export the save as a string." +
+            " As of this update, the only way to using these strings is by pasting it in the Game.defaultLevels array.</p><p>Tip: hold crtl to edit receptor tiles</p>";
+        Game.setPopup(msg, 'max-width: 320px; margin-left: -172px');
     }
     else if (down) {
         Game.selectedTileID = id;
@@ -1222,7 +1295,7 @@ function setLevelEditMode(levelEditMode) {
         setDebug(true);
         get('lvlEditInfo').style.backgroundColor = Colour.GREEN;
         if (Game.sm.currentState().id === STATE.GAME) {
-            get('lvledittilesarea').style.display = "block";
+            get('lvledittilesarea').style.display = "initial";
         }
     }
     else {
@@ -1238,11 +1311,11 @@ function setDebug(debug) {
     if (Game.debug === false)
         setLevelEditMode(false);
     if (Game.debug)
-        Game.stats.domElement.style.display = "block";
+        Game.stats.domElement.style.display = "initial";
     else
         Game.stats.domElement.style.display = "none";
     if (Game.debug) {
-        get('infoarea').style.display = "block";
+        get('infoarea').style.display = "initial";
         get('debugInfo').style.backgroundColor = Colour.GREEN;
     }
     else {

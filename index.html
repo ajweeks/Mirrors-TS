@@ -39,7 +39,7 @@
         body {
             background: #191919;
             margin: 0;
-            min-width: 600px;
+            min-width: 1130px;
             min-height: 600px; /* Pretty much useless, nothing is really based on the height in css... */
             overflow-x: hidden;
             width: 100%;
@@ -82,7 +82,7 @@
           line-height: 80px;
         }
 
-        .button {
+        [class~=button] {
             color: white;
             cursor: pointer;
             margin: 6px auto;
@@ -93,7 +93,6 @@
             height: 45px;
             line-height: 45px;
             border-radius: 4px;
-            box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 5px inset;
         }
 
         .lvlselect {
@@ -108,6 +107,21 @@
             background-color: #3B154B;
         }
 
+        .lvlselect.locked {
+            cursor: default;
+            box-shadow: none;
+            background-color: #1c0a23;
+        }
+
+        /*.bosslvl.enabled {
+            color: #DDD;
+            background-color: #1E0A26;
+        }
+
+        .bosslvl.enabled:hover {
+            box-shadow: rgba(0, 0, 0, 0.6) 0px 0px 12px inset !important;
+        }*/
+
         .button:hover:not(.lvlselect), .lvlselect.enabled:hover {
             box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 12px inset;
             text-shadow: black 1px 1px 10px;
@@ -115,6 +129,7 @@
 
         #popup {
           position: absolute;
+          user-select: text;
           top: 125px;
           left: 50%;
           margin-left: -135px;
@@ -135,6 +150,25 @@
 
         #popup p {
           font-size: 20px;
+        }
+
+        #popup textarea {
+          resize: none;
+          overflow-y: hidden;
+        }
+
+        #popupClose {
+          float: right;
+          margin: -5px -2px;
+          font-size: 18px;
+          cursor: pointer;
+          color: lightgray;
+          text-decoration: none;
+        }
+
+        #popupClose:hover {
+            color: white;
+            text-shadow: 1px 1px 10px white;
         }
 
         .popupButton {
@@ -254,10 +288,10 @@
             font-family: inherit;
             list-style-type: square;
         }
-        #infoarea [onmousedown] {
+        #infoarea [onclick] {
             cursor: pointer;
         }
-        #infoarea [onmousedown]:hover {
+        #infoarea [onclick]:hover {
             text-shadow: 0 0 3px #BFFFBF;
         }
 
@@ -265,18 +299,32 @@
             position: absolute;
             left: 50%;
             margin-left: -20%;
+            margin-top: 100px;
             width: 40%;
             color: white;
             text-align: center;
             font-size: 24px;
         }
 
+        .optionbox {
+            background-color: #111;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .button.disabled {
+            background-color: #777;
+            cursor: default;
+            box-shadow: none !important;
+            text-shadow: none !important;
+        }
+
         a {
-            color: #6d0101;
+            color: #810101;
         }
 
         a:hover {
-            color: #900202;
+            color: #730202;
         }
 
         #darken {
@@ -320,29 +368,43 @@
     </div>
 
     <div id="aboutstate" style="display: none">
-        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: 240px;">Back</div>
+        <div class="button" onclick="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: 240px;">Back</div>
         <div id="aboutinfo">
             <!-- <p>You can read more about the game here: <a href="https://liqwidice.wordpress.com/portfolio/mirrors-js" target="_blank">liqwidice.wordpress.com/portfolio/mirrors-js</a></p> -->
             <!-- <p>My personal blog can be found at: <a href="https://ajweeks.wordpress.com" target="_blank">ajweeks.wordpress.com</a></p> -->
-            <p>The unobfuscated source code can be found at: <a href="https://github.com/ajweeks/mirrors-ts" target="_blank">github.com/ajweeks/mirrors-ts</a></p>
-            <p>Mirrors was developed entirely by AJ Weeks in early 2015 using TypeScript. The first iteration of the project was written in Java in late 2014.</p>
+            <!-- <p>Mirrors was developed entirely by AJ Weeks in early 2015 using TypeScript. The project first started off as a school assignment in late 2014, written in Java.</p> -->
+            <p>Fork me on Github at: <a href="https://github.com/ajweeks/mirrors-ts" target="_blank">github.com/ajweeks/mirrors-ts</a></p>
             <p>If you have any comments or criticisms send me a mesage <a href="https://twitter.com/liqwidice" target="_blank">@liqwidice</a></p>
+            <a style="position: fixed; display: block; right: 20px; bottom: 5px; font-size: 14px; color: gray; cursor: pointer;" onclick="toggleDebug();">(Debug mode: hit 9!)</a>
             <!-- <p>For serious business inquiries, you can email me at <a href="mailto:ajweeks@shaw.ca">ajweeks@shaw.ca</a></p> -->
         </div>
     </div>
 
     <div id="optionstate" style="display: none">
-        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: 240px;">Back</div>
+        <div class="button" onclick="if (clickType(event)==='left') { Game.sm.enterPreviousState(); }" style="margin-left: 240px;">Back</div>
         <div id="optionsinfo">
-            <div class="button" style="width: 180px; margin-top: 80px;" onclick="if (clickType(event)==='left') { Game.sm.currentState().setResetLevelPopup(); }">Reset All Levels</div>
+            <div class="optionbox" style="width: 250px; margin: 0 auto;">
+                <h2 style="margin: 0">Sounds</h2>
+                <div id="soundOff" class="button" style="width: 45px; margin-top: 0px; display: inline-block;" onclick="if (clickType(event)==='left' && get('soundOff').className==='button') { Sound.toggleMute(); Sound.play(Sound.select); get('soundOn').className='button'; get('soundOff').className='button disabled'; }">Off</div>
+                <div id="soundOn" class="button disabled" style="width: 45px; margin-top: 10px; display: inline-block;" onclick="if (clickType(event)==='left' && get('soundOn').className==='button') { Sound.toggleMute(); Sound.play(Sound.select); get('soundOff').className='button'; get('soundOn').className='button disabled'; }">On</div>
+            </div>
+            <div class="button" style="width: 180px; margin-top: 30px;" onclick="if (clickType(event)==='left') { Sound.play(Sound.select); Game.sm.currentState().setResetAllLevelsPopup(); }">Reset All Levels</div>
         </div>
     </div>
 
     <div id="levelselectstate" style="display: none;"></div>
 
     <div id="gameboard" oncontextmenu="return false;" style="display: none">
-        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="margin-left: -430px; margin-top: -40px;">Back</div>
-        <div class="button" onmousedown="if (clickType(event)==='left') Game.sm.currentState().level.reset();" style="margin-left: -430px; margin-top: 0px;">Reset</div>
+
+        <audio id="blipSound"><source src="res/sounds/blip.wav"></source></audio>
+        <audio id="selectSound"><source src="res/sounds/select.wav"></source></audio>
+        <audio id="select3Sound"><source src="res/sounds/select3.wav"></source></audio>
+        <audio id="winSound"><source src="res/sounds/win.wav"></source></audio>
+        <audio id="wizzleSound"><source src="res/sounds/wizzle.wav"></source></audio>
+
+        <div class="button" onclick="if (clickType(event)==='left') Game.sm.enterPreviousState();" style="position: fixed; top: 120px; left: 12%;">Back</div>
+        <div class="button" onclick="if (clickType(event)==='left') { Sound.play(Sound.select); Game.sm.currentState().setResetLevelPopup(); }  " style="position: fixed; top: 170px; left: 12%;">Reset</div>
+        <h3 id="levelNumHeading" style="position: absolute; top: -53px; left: 6px; font-size: 24px; color: gray;"></h3>
         <canvas id="gamecanvas" onmousedown="boardClick(event, true)" ></canvas>
     </div>
 
@@ -351,9 +413,9 @@
         <canvas id="lvledittilescanvas"></canvas>
     </div>
 
-    <div id="darken"></div>
+    <div id="darken" oncontextmenu="return false;"></div>
 
-    <div id="popupHolder">
+    <div id="popupHolder" oncontextmenu="return false;">
       <div id="popup"></div>
     </div>
 
@@ -363,8 +425,8 @@
         <div id="shortcuts">
             <b>Shortcuts:</b>
             <ul>
-                <li id="debugInfo" onmousedown="toggleDebug();">Debug - 9</li>
-                <li id="lvlEditInfo" onmousedown="toggleLevelEditMode();">Lvl Edit Mode - 0</li>
+                <li id="debugInfo" onclick="toggleDebug();">Debug - 9</li>
+                <li id="lvlEditInfo" onclick="toggleLevelEditMode();">Lvl Edit Mode - 0</li>
             </ul>
         </div>
         <div id="tile_types">

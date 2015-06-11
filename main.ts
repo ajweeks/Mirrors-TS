@@ -18,9 +18,9 @@ enum IMAGE { BLANK = 0, MIRROR = 1, POINTER = 2, RECEPTOR = 3, LASER = 4 }
 enum DIRECTION { NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3, NW = 0, NE = 1, SE = 2, SW = 3 }
 
 class Game {
-    static version: number = 0.041;
+    static version: number = 0.043;
     static releaseStages = { DEVELOPMENT: "development", PRODUCTION: "production" };
-    static releaseStage: string = Game.releaseStages.DEVELOPMENT;   // RELEASE make false
+    static releaseStage: string = Game.releaseStages.PRODUCTION;   // RELEASE make false
     static images = [];
     static preferences = { 'warn': Game.debug };
     static selectedTileID: number = ID.BLANK;
@@ -47,14 +47,42 @@ class Game {
 
     /* The default game levels (these NEVER get mutated) */
     static defaultLevels = [
-        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 0], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [3, 3, 'GXXX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 1, 'RXXX'], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, [2, 3, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        // 0:
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 1], 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 0, 'XXGX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
 
-        [10, 8, [[2, 1, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1, 1], 0, [1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 0, 1, 0], 0, 0, 0, 0, 0, 0, [3, 2, 'XXRB'], 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1]]],
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 0, 'XXBX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
 
-        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [2, 2, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 3, 'RXGX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
 
-        [10, 8, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [3, 1, 'WWWX'], 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, [2, 0, 1, 1], 0, [2, 0, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+
+        [9, 9, [0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 1, 0, 1, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, [3, 3, 'RXBX'], 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, [2, 3, 1, 2], 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+
+        [9, 9, [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, [2, 1, 1, 2], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, [3, 1, 'BXXR'], 0, 1, 1, 0, 0, [2, 3, 1, 0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+
+        [9, 9, [[2, 1, 1, 0], 0, 0, 1, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 1, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, [2, 2, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 0, 1, 1], 0, 0, 0, 0, 0, 0, 0, [1, 1], [1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, [3, 1, 'GRGX'], 0, [1, 1], 1, 0, 0, 0, 0, 0, 1, 0, 0]],
+
+        [9, 9, [0, [2, 1, 1, 2], 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 1, 0, [1, 1], 0, 0, 0, 1, 0, 0, [3, 2, 'XXRX'], 0, 0, 0, 0, 0, 1, [1, 1], 0, 0, 0, [3, 3, 'GXBX'], 0, 0, 0, [1, 1], 0, 0, [2, 1, 1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, [1, 1], 0, 0, 0, 0, 0, 0, 0, [1, 1], 1, 0, 0, [2, 3, 1, 0], 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, [1, 1]]],
+
+        // 8:
+        [9, 9, [[2, 2, 1, 1], 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 1, 0, 1, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, [2, 3, 1, 2], 0, 0, 0, 0, 0, 0, 0, 0, 0, [3, 2, 'BXWX'], 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0]],
+
+        [9, 9, [0, [1, 1], 0, 0, 0, 0, 0, [2, 2, 1, 2], 0, [2, 1, 1, 0], 0, 0, 0, 0, 0, 1, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], [3, 1, 'RXBG'], 0, 1, 0, 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, [1, 1], 1, 0, 0, 0, 0, 0, 0, 0, [2, 3, 1, 2], 1, 0, 0, 0, 0, 0, 0, [3, 3, 'XXBX'], 0, 0, [2, 0, 1, 1], 0, 0, 1, 0, 0, 0, 0]],
+
+        [9, 9, [0, [1, 1], 0, [1, 1], [2, 3, 1, 1], 1, 1, 1, [1, 1], [2, 2, 1, 2], 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, [1, 1], [1, 1], 0, 1, 2, 0, 0, 0, 0, 0, [3, 0, 'RXXX'], [1, 1], 0, 1, 0, 0, 1, 0, 0, 0, [3, 2, 'GXGX'], 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, [3, 2, 'WXBX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [1, 1], 0, 0, 0, [1, 1], 0, 0, [2, 3, 1, 0], [2, 0, 1, 1], 0, [1, 1], 0, 0, 0, 0, [1, 1], 0]],
+
+        [9, 9, [0, 0, [2, 1, 1, 1], 1, 0, [1, 1], 1, 1, 0, 0, [2, 1, 1, 0], 0, [1, 1], 0, 1, 0, [3, 0, 'RGRG'], 1, 0, 0, 0, 0, 1, 0, [1, 1], 0, 0, 0, [1, 1], 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, [1, 1], 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, [2, 0, 1, 1], 0, 0, [1, 1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+
+        [9, 9, [0, [1, 1], 0, 0, [1, 1], 1, [1, 1], [1, 1], 1, [1, 1], 0, [1, 1], [2, 1, 1, 2], 0, 0, [1, 1], [1, 1], 0, 0, 0, 0, 1, 1, 0, 1, 2, 0, [2, 0, 1, 1], 0, [3, 0, 'BRXG'], [1, 1], [3, 0, 'XGBR'], 0, [1, 1], 1, 0, [2, 1, 1, 2], 1, 0, 0, 0, 0, 0, [2, 0, 1, 1], 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2, 1, 1, 0], 0, 0, 0, 0, 1, 0, 0, 0, [2, 1, 1, 0], 1, [1, 1], 0, 0, [1, 1], 1, [1, 1], 0, 0, 0, 1, 0, 0, 1]],
+
+        [9, 9, [[2,1,1,1], 0, 1, 0, 0, 0, [1,1], 0, [2,3,1,1], 0, [1,1], [1,1], 0, 0, 0, [1,1], 1, 0, 0, 0, 0, [1,1], [3,1,'WXWX'], [1,1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, [1,1], [3,0,'WXWX'], [1,1], 0, 0, [1,1], 0, [2,1,1,0], 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, [1,1], 0, 1, [1,1], 0, 0]],
+
+        [9, 9, [0, 0, 0, 0, [2,3,1,2], [2,2,1,2], [2,2,1,2], [2,1,1,2], 0, [1,1], 0, 0, 1, 0, 0, 0, 0, 0, [3,3,'XXBX'], 0, [1,1], [3,2,'RXBX'], 1, 1, 0, 0, 0, 0, [1,1], 1, [1,1], [3,0,'RXBX'], [1,1], 0, 0, 0, 0, 0, [1,1], 0, [1,1], [3,0,'RXBX'], [1,1], [1,1], 0, 0, 0, 0, 1, [1,1], 1, [3,3,'RXBX'], 1, 0, 0, 0, 0, 0, [1,1], 0, 1, [2,3,1,2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, [2,3,1,0], 2, 2, [2,1,1,0], 0, 0, 0, 0]],
+
+        [9, 9, [[1,1], 0, 1, 0, 0, 0, [1,1], 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, [1,1], 0, 0, 0, 0, 0, 0, 0, [1,1], 0, 0, 0, [3,2,'XXRX'], [3,1,'XXGX'], [3,3,'BXXX'], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, [1,1], 0, 0, 0, 0, [1,1], 0, 0, [1,1], 0, 2, [2,0,1,1], [2,1,1,2], 0, 0, [1,1], 1, 0, 1]]
+
     ];
+    // TODO XXX Implement Level unlocking
 
     /* Stores which levels the player has completed */
     static completedLevels: boolean[];
@@ -167,7 +195,7 @@ class Game {
         get('darken').style.display = "initial";
         get('popup').style.cssText = styles;
         get('popup').style.display = "initial";
-        get('popup').innerHTML = str;
+        get('popup').innerHTML = '<a id="popupClose" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.select); Game.clearPopup(); }">x</a>' + str;
         Game.popupUp = true;
     }
 
@@ -183,6 +211,7 @@ class Game {
 
         if (Game.keysdown[Game.KEYBOARD.ESC]) {
             if (Game.popupUp === true) {
+                Sound.play(Sound.select);
                 Game.clearPopup();
             } else {
                 this.sm.enterPreviousState();
@@ -287,18 +316,18 @@ class OptionState extends BasicState {
     constructor(sm: StateManager) {
         super(STATE.OPTION, sm);
 
-        get('optionstate').style.display = "block";
+        get('optionstate').style.display = "initial";
     }
 
-    setResetLevelPopup(): void {
+    setResetAllLevelsPopup(): void {
         Game.setPopup('<h3>Clear level data</h3>' +
-            '<p>Are you sure? This will erase all of your saved data!</p>' +
-            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
-            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Game.clearPopup(); }">Cancel</div>', 'margin-left: -170px;');
+            '<p>Are you sure? This will erase all of your saved data!<br />This can not be undone!</p>' +
+            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.wizzle); Level.resetAll(); Game.clearPopup(); }">Reset</div>' +
+            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.select); Game.clearPopup(); }">Cancel</div>', 'margin-left: -170px;');
     }
 
     restore() {
-        get('optionstate').style.display = "block";
+        get('optionstate').style.display = "initial";
     }
 
     destroy() {
@@ -321,29 +350,39 @@ class LevelSelectState extends BasicState {
         this.maxOffset = -(Math.ceil(this.numOfLevels / this.height) * 250 - window.innerWidth + 150);
 
         get('levelselectstate').style.display = "block";
-        var x, y, str = '', n;
+        var x, y, str = '', index;
         for (x = 0; x < Math.ceil(this.numOfLevels / this.height); x++) { // for every column
             str += '<div class="col">';
             for (y = 0; y < this.height; y++) { // for every item in the column
-                n = (x * this.height) + y;
-                var enabled = Game.defaultLevels[n] !== undefined;
-                str += '<div class="button lvlselect' + (enabled ? ' enabled' : '') + '" id="' + n + 'lvlselectButton" ' +
-                (enabled ? 'onmousedown="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + n + ');"' : '') +
-                '>' + decimalToHex(n) + '</div>';
+                index = x * this.height + y;
+                // FIXME XXX set levels > 8 to locked to start with
+                var enabled = Game.defaultLevels[index] !== undefined;
+                str += '<div class="button lvlselect' + (enabled ? ' enabled' : '') + '" id="' + index + 'lvlselectButton" ' +
+                (enabled ? 'onclick="if (clickType(event)===\'left\') Game.sm.enterState(\'game\', ' + index + ');"' : '') +
+                '>' + index + '</div>';
             }
             str += '</div>';
         }
         str += '<div id="backarrow" onmouseover="Game.lvlselectButtonDirection=1;" onmouseout="Game.lvlselectButtonDirection = 0;" style="visibility: hidden"><p>&#9664;</p></div>';
         str += '<div id="forwardarrow" onmouseover="Game.lvlselectButtonDirection=-1" onmouseout="Game.lvlselectButtonDirection = 0;"><p>&#9654;</p></div>';
-        str += '<div class="button" onmousedown="if (clickType(event)===\'left\') Game.sm.enterPreviousState();" style="margin-left: -90px; margin-top: -490px;">Back</div>';
+        str += '<div class="button" onclick="if (clickType(event)===\'left\') Game.sm.enterPreviousState();" style="margin-left: -90px; margin-top: -490px;">Back</div>';
         get('levelselectstate').style.width = 250 * Math.ceil(this.numOfLevels / this.height) + 'px'; // LATER make this better, but this works for now I guess
         get('levelselectstate').style.marginLeft = '150px';
         get('levelselectstate').style.marginTop = '80px';
         get('levelselectstate').innerHTML = str;
 
         LevelSelectState.updateButtonBgs();
+    }
 
-        // XXX TODO Save completed levels in local storage
+    highestLevelUnlocked(): void {
+        var highest = 0;
+        for (var i = 0; i < this.numOfLevels; i++) {
+            if (Game.completedLevels[i] === false) {
+                highest = i;
+            }
+        }
+        highest %= 8;
+        highest += 8;
     }
 
     static updateButtonBgs() {
@@ -366,6 +405,7 @@ class LevelSelectState extends BasicState {
             this.offset = this.maxOffset;
             get('forwardarrow').style.visibility = "hidden";
         } else {
+            this.highestLevelUnlocked();
             get('forwardarrow').style.visibility = "visible";
             get('backarrow').style.visibility = "visible";
         }
@@ -405,7 +445,7 @@ class GameState extends BasicState {
 
         this.level = new Level(this.levelNum);
 
-        get('gameboard').style.display = "block";
+        get('gameboard').style.display = "initial";
 
         // centering code:
         get('gameboard').style.left = "50%";
@@ -419,27 +459,29 @@ class GameState extends BasicState {
 
 
         get('lvledittiles').innerHTML = '<div>' +
-        '<div class="selectionTile" id="0tile" onmousedown="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" ' +
+        '<div class="selectionTile" id="0tile" onclick="selectionTileClick(event, true, 0);" onmouseup="selectionTileClick(event, false, 0);" ' +
         'onmouseover="get(\'0tilep\').style.visibility=\'visible\'" onmouseout="get(\'0tilep\').style.visibility=\'hidden\'"><p id="0tilep" style="visibility: hidden">blank</p></div>' +
-        '<div class="selectionTile" id="1tile" onmousedown="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" ' +
+        '<div class="selectionTile" id="1tile" onclick="selectionTileClick(event, true, 1);" onmouseup="selectionTileClick(event, false, 1);" ' +
         'onmouseover="get(\'1tilep\').style.visibility=\'visible\'" onmouseout="get(\'1tilep\').style.visibility=\'hidden\'"><p id="1tilep" style="visibility: hidden">mirror</p></div>' +
-        '<div class="selectionTile" id="2tile" onmousedown="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" ' +
+        '<div class="selectionTile" id="2tile" onclick="selectionTileClick(event, true, 2);" onmouseup="selectionTileClick(event, false, 2);" ' +
         'onmouseover="get(\'2tilep\').style.visibility=\'visible\'" onmouseout="get(\'2tilep\').style.visibility=\'hidden\'"><p id="2tilep" style="visibility: hidden">pointer</p></div>' +
-        '<div class="selectionTile" id="3tile" onmousedown="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" ' +
+        '<div class="selectionTile" id="3tile" onclick="selectionTileClick(event, true, 3);" onmouseup="selectionTileClick(event, false, 3);" ' +
         'onmouseover="get(\'3tilep\').style.visibility=\'visible\'" onmouseout="get(\'3tilep\').style.visibility=\'hidden\'"><p id="3tilep" style="visibility: hidden">receptor</p></div>' +
-        '<div class="selectionTile" id="printButton" onmousedown="selectionTileClick(event, true, 888)"><p>print</p></div>' +
-        '<div class="selectionTile" id="clearButton" onmousedown="selectionTileClick(event, true, 887)"><p>clear</p></div>' +
-        '<div class="selectionTile" id="helpButton" onmousedown="selectionTileClick(event, true, 886)"><p>help</p></div>' +
+        '<div class="selectionTile" id="printButton" onclick="selectionTileClick(event, true, 888)"><p>print</p></div>' +
+        '<div class="selectionTile" id="clearButton" onclick="selectionTileClick(event, true, 887)"><p>clear</p></div>' +
+        '<div class="selectionTile" id="helpButton" onclick="selectionTileClick(event, true, 886)"><p>help</p></div>' +
         '</div>';
 
         (<HTMLCanvasElement> get('lvledittilescanvas')).width = Tile.size;
         (<HTMLCanvasElement> get('lvledittilescanvas')).height = 7 * Tile.size;
 
         if (GameState.levelEditMode) {
-            get('lvledittilesarea').style.display = "block";
+            get('lvledittilesarea').style.display = "initial";
         } else {
             get('lvledittilesarea').style.display = "none";
         }
+
+        get('levelNumHeading').innerHTML = 'Level ' + this.levelNum;
     }
 
     update(): void {
@@ -465,8 +507,8 @@ class GameState extends BasicState {
     }
 
     restore(): void {
-        get('gameboard').style.display = "block";
-        if (GameState.levelEditMode) get('lvledittilesarea').style.display = "block";
+        get('gameboard').style.display = "initial";
+        if (GameState.levelEditMode) get('lvledittilesarea').style.display = "initial";
     }
 
     destroy(): void {
@@ -481,6 +523,13 @@ class GameState extends BasicState {
 
     hover(event: MouseEvent, into: boolean): void {
         this.level.hover(event, into);
+    }
+
+    setResetLevelPopup(): void {
+        Game.setPopup('<h3>Reset level</h3>' +
+            '<p>Are you sure you want to reset?</p>' +
+            '<div class="popupButton button" id="yesButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.wizzle); Game.sm.currentState().level.reset(); Game.clearPopup(); }">Reset</div>' +
+            '<div class="popupButton button" id="cancelButton" onclick="if (clickType(event)===\'left\') { Sound.play(Sound.select); Game.clearPopup(); }">Cancel</div>', 'margin-left: -146px;');
     }
 }
 
@@ -505,6 +554,7 @@ class StateManager {
     }
 
     enterState(state: string, levelNum?: number): void { // levelNum only used when entering a game state
+        Sound.play(Sound.select);
         this.currentState().hide();
         if (state === "game") this.states.push(this.getState(state, levelNum || 0));
         else this.states.push(this.getState(state));
@@ -531,6 +581,7 @@ class StateManager {
         // if (this.states[this.states.length - 1].id === STATE.GAME) (<GameState>this.states[this.states.length - 1]).level.checkCompleted();
 
         if (this.states.length > 1) { // if there is only one state, we can't go back any further
+            Sound.play(Sound.select);
             this.currentState().destroy();
             this.states.pop();
             this.currentState().restore();
@@ -570,15 +621,17 @@ class Receptor {
     }
 
     update(): void {
+        var wasOn = this.on;
         this.on = (this.laser !== null && Receptor.colourTurnsMeOn(this.laser.colour, this.colour));
 
         if (this.on === false) {
             this.laser = null;
+        } else {
+            if (wasOn === false) Sound.play(Sound.blip);
         }
     }
 
     render(context: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
-        //            if (this.laser) this.laser.render(context, x, y, sub(dir, 2)); // don't render lasers on receptor tiles, for now at least
         Game.renderImage(context, x, y, Game.images[ID.RECEPTOR][this.colour], dir, Tile.size);
     }
 
@@ -716,13 +769,15 @@ class PointerTile extends Tile {
         if (down === false) return;
         if (clickType(event) === "left") {
             super.click(event, down);
-        } else if (clickType(event) === "right") {
-            this.on = !this.on;
-            if (this.on) {
-                this.colour = Colour.nextColor(this.colour, false);
-                this.addLaser(new Laser(null, this.dir, this.colour));
-            } else {
-                this.removeAllLasers();
+        } else if (clickType(event) === "right") { // LATER implement right clicking in a better way (might require some info box things)
+            if (GameState.levelEditMode) {
+                this.on = !this.on;
+                if (this.on) {
+                    this.colour = Colour.nextColor(this.colour, false);
+                    this.addLaser(new Laser(null, this.dir, this.colour));
+                } else {
+                    this.removeAllLasers();
+                }
             }
         }
     }
@@ -853,6 +908,7 @@ class ReceptorTile extends Tile {
     }
 
     render(context: CanvasRenderingContext2D, x: number, y: number): void {
+        // TODO LATER render just the section of the tile that is turned on (top half, lower right corner, etc)
         if (this.allReceptorsOn()) {
             context.fillStyle = Colour.GREEN;
             context.strokeStyle = Colour.GREEN;
@@ -996,6 +1052,7 @@ class Level {
 
     /* Checks if all of this level's receptors have been activated and sets Game.completedLevels[levelNum] = true if so */
     checkCompleted(): void {
+        if (GameState.levelEditMode) return; // thhis popup can get really annoying when editing levels
         var on = true;
         for (var i = 0; i < this.tiles.length; i++) {
             if (this.tiles[i].id === ID.RECEPTOR) {
@@ -1007,6 +1064,8 @@ class Level {
         }
         if (on) {
             Level.removeFromMemory(this.levelNum); // the player beat the level, no need storing their progress anymore
+
+            Sound.play(Sound.win);
 
             // This is the first time the level has been completed, completedLevels[lvlnum] gets set to true until the player manually resets all their data
             if (Game.completedLevels[this.levelNum] !== true) { // only checking if not true to be more efficient
@@ -1156,6 +1215,11 @@ class Level {
     }
 
     static saveCompletedLevelsToMemory(): void {
+        if (typeof (Storage) === "undefined") {
+            console.error("Failed to save data. Please update your browser.");
+            return; // LATER USE COOKIES HERE INSTEAD?
+        }
+
         var str = '';
         for (var i = 0; i < Game.completedLevels.length; i++) {
             if (Game.completedLevels[i] === true) str += i + ',';
@@ -1163,10 +1227,15 @@ class Level {
         str = str.substr(0, Math.max(str.length - 1, 0)); // remove last comma
         if (str.length === 0) {
             if (window.localStorage.getItem(Game.saveLocation + ' cl: ') !== undefined) window.localStorage.removeItem(Game.saveLocation + ' cl: ');
-        } else window.localStorage.setItem(Game.saveLocation + ' cl: ', encodeURI(str));
+        } else window.localStorage.setItem(Game.saveLocation + ' cl: ', str);
     }
 
     static loadCompletedLevelsFromMemory(): void {
+        if (typeof (Storage) === "undefined") {
+            console.error("Failed to save data. Please update your browser.");
+            return; // LATER USE COOKIES HERE INSTEAD?
+        }
+
         if (window.localStorage.getItem(Game.saveLocation + ' cl: ') === null) return;
         var str: Array<number> = window.localStorage.getItem(Game.saveLocation + ' cl: ').split(',');
         for (var i = 0; i < Game.completedLevels.length; i++) {
@@ -1192,7 +1261,7 @@ class Level {
                     else lvl[2][i] = [ID.MIRROR, tile.dir];
                     break;
                 case ID.POINTER:
-                    if (tile.dir === DIRECTION.NORTH && tile.on === false && tile.colour === COLOUR.RED) lvl[2][i] = ID.POINTER;
+                    if (tile.dir === DIRECTION.NORTH && tile.on === true && tile.colour === COLOUR.RED) lvl[2][i] = ID.POINTER;
                     else lvl[2][i] = [ID.POINTER, tile.dir, getBoolShorthand(tile.on), tile.colour];
                     break;
                 case ID.RECEPTOR:
@@ -1253,7 +1322,7 @@ class Level {
             case ID.MIRROR:
                 return new MirrorTile(x, y, DIRECTION.NORTH);
             case ID.POINTER:
-                return new PointerTile(x, y, DIRECTION.NORTH, false, COLOUR.RED);
+                return new PointerTile(x, y, DIRECTION.NORTH, true, COLOUR.RED);
             case ID.RECEPTOR:
                 return new ReceptorTile(x, y, DIRECTION.NORTH, "RXBX");
         }
@@ -1262,6 +1331,28 @@ class Level {
 
     copy(): Level {
         return new Level(this.levelNum, this.w, this.h, this.tiles);
+    }
+
+}
+
+class Sound {
+
+    static blip = 'blipSound';
+    static win = 'winSound';
+    static select = 'selectSound';
+    static select3 = 'selectSound3';
+    static wizzle = 'wizzleSound';
+
+    static muted = false;
+
+    static toggleMute(): void {
+        Sound.muted = !Sound.muted;
+    }
+
+    static play(sound: string): void {
+        if (Sound.muted) return;
+        (<HTMLAudioElement>get(sound)).currentTime = 0;
+        (<HTMLAudioElement>get(sound)).play();
     }
 
 }
@@ -1354,13 +1445,15 @@ function assert(condition, message: string): void {
 function selectionTileClick(event: MouseEvent, down: boolean, id: number): void {
     if (clickType(event) !== 'left') return;
     if (id === 888) { // save button
-        prompt("This is the level code: copy and paste it somewhere you'll remember", (<GameState> Game.sm.currentState()).level.getLevelString());
+        var msg = "<h3>Level " + (<GameState> Game.sm.currentState()).level.levelNum + " save</h3><p>Copy and paste into Game.defaultLevels!</p><textarea id='levelSave' readonly>" + (<GameState> Game.sm.currentState()).level.getLevelString() + "</textarea>";
+        Game.setPopup(msg, 'max-width: 320px; margin-left: -172px');
+        (<HTMLTextAreaElement>get('levelSave')).select();
     } else if (id === 887) { // clear button
         (<GameState>Game.sm.currentState()).level.clear();
     } else if (id === 886) {
-        var msg = "Hello curious player! You are currently in Mirror's level editor. Here you can create your own levels! The print button will export the save as a string." +
-            " Level loading has not yet been implemented, but it might be soon. \n\nTip: hold crtl to edit tiles while still in lvl edit mode";
-        alert(msg);
+        var msg = "<h3>Level editor help</h3><p>Hello curious player! You are currently in Mirror's level editor. Here you can create your own levels! The print button will export the save as a string." +
+            " As of this update, the only way to using these strings is by pasting it in the Game.defaultLevels array.</p><p>Tip: hold crtl to edit receptor tiles</p>";
+        Game.setPopup(msg, 'max-width: 320px; margin-left: -172px');
     } else if (down) {
         Game.selectedTileID = id;
     }
@@ -1377,7 +1470,7 @@ function setLevelEditMode(levelEditMode: boolean): void {
         get('lvlEditInfo').style.backgroundColor = Colour.GREEN;
 
         if (Game.sm.currentState().id === STATE.GAME) {
-            get('lvledittilesarea').style.display = "block";
+            get('lvledittilesarea').style.display = "initial";
         }
     } else {
         get('lvlEditInfo').style.backgroundColor = "initial";
@@ -1392,11 +1485,11 @@ function toggleDebug(): void {
 function setDebug(debug: boolean): void {
     Game.debug = debug;
     if (Game.debug === false) setLevelEditMode(false);
-    if (Game.debug) Game.stats.domElement.style.display = "block";
+    if (Game.debug) Game.stats.domElement.style.display = "initial";
     else Game.stats.domElement.style.display = "none";
 
     if (Game.debug) {
-        get('infoarea').style.display = "block";
+        get('infoarea').style.display = "initial";
         get('debugInfo').style.backgroundColor = Colour.GREEN;
     } else {
         get('infoarea').style.display = "none";
