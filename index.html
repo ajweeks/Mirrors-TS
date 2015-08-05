@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta content="text/html;charset=utf-8" http-equiv="content-type">
-    <meta name="keywords" content="mirrors, js, html, css, mirrors-js, game">
+    <meta name="keywords" content="mirrors, js, html, css, mirrors-js, game, webgame">
     <meta name="description" content="A 2D tile-based laser-filled game created by AJ Weeks">
     <meta name="author" content="AJ Weeks">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -113,6 +113,8 @@
             background-color: #1c0a23;
         }
 
+        /* TODO implement boss levels? LATER */
+
         /*.bosslvl.enabled {
             color: #DDD;
             background-color: #1E0A26;
@@ -127,9 +129,24 @@
             text-shadow: black 1px 1px 10px;
         }
 
+        #darken {
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 1499999;
+          width: 100%;
+          height: 100%;
+          transition: all 0.3s;
+          background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        #darken.hidden {
+          background-color: rgba(0, 0, 0, 0.0);
+          z-index: -200;
+        }
+
         #popup {
           position: absolute;
-          user-select: text;
           top: 125px;
           left: 50%;
           margin-left: -135px;
@@ -141,7 +158,11 @@
           background-color: black;
           color: white;
           text-align: center;
-          display: none;
+          transition: all 0.3s;
+        }
+
+        #popup.hidden {
+          left: -1920px;
         }
 
         #popup h3 {
@@ -327,17 +348,6 @@
             color: #730202;
         }
 
-        #darken {
-          position: fixed;
-          left: 0;
-          top: 0;
-          z-index: 1499999;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.5);
-          display: none;
-        }
-
         #versionNumber {
             position: fixed;
             left: 0;
@@ -354,7 +364,6 @@
         }
     </style>
     <script src="external/stats.min.js"></script>
-    <!--        <script src="js/external/bugsnag.js" data-apikey="0378601a233896374ff5cc83b1d302ef"></script>  -->
     <script src="main.js"></script>
 </head>
 <body>
@@ -373,8 +382,9 @@
             <!-- <p>You can read more about the game here: <a href="https://liqwidice.wordpress.com/portfolio/mirrors-js" target="_blank">liqwidice.wordpress.com/portfolio/mirrors-js</a></p> -->
             <!-- <p>My personal blog can be found at: <a href="https://ajweeks.wordpress.com" target="_blank">ajweeks.wordpress.com</a></p> -->
             <!-- <p>Mirrors was developed entirely by AJ Weeks in early 2015 using TypeScript. The project first started off as a school assignment in late 2014, written in Java.</p> -->
-            <p>Fork me on Github at: <a href="https://github.com/ajweeks/mirrors-ts" target="_blank">github.com/ajweeks/mirrors-ts</a></p>
-            <p>If you have any comments or criticisms send me a mesage <a href="https://twitter.com/liqwidice" target="_blank">@liqwidice</a></p>
+            <p>Fork me on Github at <a href="https://github.com/ajweeks/mirrors-ts" target="_blank">github.com/ajweeks/mirrors-ts</a></p>
+            <p>You see my other games at <a href="https://ajweeks.github.io/games/" target="_blank">ajweeks.github.io/games</a></p>
+            <p>If you have any comments or criticisms send me a mesage on twitter <a href="https://twitter.com/liqwidice" target="_blank">@liqwidice</a></p>
             <a style="position: fixed; display: block; right: 20px; bottom: 5px; font-size: 14px; color: gray; cursor: pointer;" onclick="toggleDebug();">(Debug mode: hit 9!)</a>
             <!-- <p>For serious business inquiries, you can email me at <a href="mailto:ajweeks@shaw.ca">ajweeks@shaw.ca</a></p> -->
         </div>
@@ -413,10 +423,10 @@
         <canvas id="lvledittilescanvas"></canvas>
     </div>
 
-    <div id="darken" oncontextmenu="return false;"></div>
+    <div id="darken" class="hidden" oncontextmenu="return false;" onclick="Sound.play(Sound.select); Game.clearPopup()"></div>
 
     <div id="popupHolder" oncontextmenu="return false;">
-      <div id="popup"></div>
+      <div id="popup" class="hidden"></div>
     </div>
 
     <div id="versionNumber"></div>
