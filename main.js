@@ -935,7 +935,7 @@ var Level = (function () {
         }
         if (on && Game.popupUp === false) {
             var str = '<div id="popupContent">' +
-                '<h3>Level complete!</h3> <p>Good job!</p>' +
+                '<h3>Level complete!</h3> <p>' + getMessage('win') + '!</p>' +
                 '<div class="popupButton button" id="returnButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); }">Return</div>' +
                 '<div class="popupButton button" id="nextButton" onclick="if (clickType(event)===\'left\') { Game.sm.enterPreviousState(); Game.clearPopup(); if (' + (this.levelNum + 1) + ' < Game.defaultLevels.length) { Game.sm.enterState(\'game\', ' + (this.levelNum + 1) + '); } }">Next Level!</div>' +
                 '</div>';
@@ -1422,6 +1422,27 @@ function getAbsolutePosition(element) {
         r.y += tmp.y;
     }
     return r;
+}
+function getMessage(type) {
+    var num = Math.floor(Math.random() * 6);
+    switch (type) {
+        case 'win':
+            switch (num) {
+                case 0:
+                    return 'Good Job';
+                case 1:
+                    return 'Sweet';
+                case 2:
+                    return 'Excellent';
+                case 3:
+                    return 'Nice';
+                case 4:
+                    return 'Awesome';
+                case 5:
+                    return 'Congrats';
+            }
+    }
+    return 'Good Job';
 }
 function mobileCheck() {
     var check = false;
